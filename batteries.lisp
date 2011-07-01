@@ -63,6 +63,7 @@
 (in-package :batteries)
 
 (ql:quickload "alexandria")
+;; Check to see if the package 'clos' comes standard
 (ql:quickload "closer-mop")
 
 
@@ -305,17 +306,31 @@ Expects seq to be a sequence of strings"
 (with-running-unit-tests
     (expect "a-b-c" (join-string "-" '("a" "b" "c"))))
 
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Object creation macros
 
 (defun build-var (classname var)
-  (list var
-        :initform nil
+  (let ((variable-symbol (if (consp var) 
+			     (first var) 
+			     var))
+	(variable-init-val (if (consp var)
+			       (second var)
+			       nil)))
+  (list variable-symbol
+        :initform variable-init-val
         :accessor (intern (concatenate 'string (string classname) "-"
-                                       (string var)))
-        :initarg (intern (string var) :keyword)))
+                                       (string variable-symbol)))
+        :initarg (intern (string variable-symbol) :keyword))))
+
+(with-running-unit-tests
+    (expect 
+     '(BAR :INITFORM NIL :ACCESSOR FOO-BAR :INITARG :BAR)
+     (batteries:build-var 'foo 'bar))
+
+  (expect
+   '(BAR :INITFORM QUUX :ACCESSOR FOO-BAR :INITARG :BAR)
+   (batteries:build-var 'foo '(bar quux))))
+
 
 (defun build-varlist (classname varlist)
    (loop for var in varlist
@@ -324,7 +339,7 @@ Expects seq to be a sequence of strings"
 (defmacro def-ez-class (name &optional varlist &key doc)
   (let ((docpair nil)
 	(vars (loop for var in varlist
-		  collect (build-var name var))))
+		 collect (build-var name var))))
 
     (if doc
 	(setf docpair (list :documentation doc))
