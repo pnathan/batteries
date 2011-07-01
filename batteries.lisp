@@ -329,7 +329,7 @@ Expects seq to be a sequence of strings"
 
   (expect
    '(BAR :INITFORM QUUX :ACCESSOR FOO-BAR :INITARG :BAR)
-   (batteries:build-var 'foo '(bar quux))))
+o   (batteries:build-var 'foo '(bar quux))))
 
 
 (defun build-varlist (classname varlist)
@@ -349,20 +349,27 @@ Expects seq to be a sequence of strings"
        ,vars
        ,docpair)))
 
-(defmacro def-ez-class-ctor (name initargs)
+(defmacro def-ez-class-ctor (name varlist)
   "
 ;(defun make-name (&key (bar nil))
 ;(make-instance 'name :bar bar))"
   (let ((initarg-list
-	 (loop for arg in initargs collect
-	      (list arg nil)))
+	 (loop for var in varlist collect
+	      (if (consp var) 
+		  (list (first var) (second var))
+		  (list var nil))))
 	(ctor-args
 	 (flatten
-	  (loop for arg in initargs collect
-	       (list (intern (string arg) :keyword) arg)))))
+	  (loop for var in varlist 
+	     collect
+	       (let ((var-symbol (if (consp var) 
+				     (first var)
+				     var)))
+		     (list (intern (string var-symbol) :keyword) var-symbol))))))
 
-     (if initarg-list
-	 (push '&key initarg-list))
+    ;;Add the kwarg notator
+    (if initarg-list
+	(push '&key initarg-list))
 
      `(defun ,(intern (concatenate 'string "MAKE-" (string name)))
 	  ,initarg-list
