@@ -325,11 +325,11 @@ Expects seq to be a sequence of strings"
 (with-running-unit-tests
     (expect 
      '(BAR :INITFORM NIL :ACCESSOR FOO-BAR :INITARG :BAR)
-     (batteries:build-var 'foo 'bar))
+     (build-var 'foo 'bar))
 
   (expect
    '(BAR :INITFORM QUUX :ACCESSOR FOO-BAR :INITARG :BAR)
-o   (batteries:build-var 'foo '(bar quux))))
+o   (build-var 'foo '(bar quux))))
 
 
 (defun build-varlist (classname varlist)
