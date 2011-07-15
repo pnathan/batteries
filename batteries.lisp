@@ -39,6 +39,7 @@
 	   :defobject
 	   :class-slots-symbols
 	   :object-to-hash
+	   :print-generic-object
 
 	   :sum
 	   :range
@@ -449,6 +450,12 @@ slots to their values"
 		  (slot-value  obj slot)))
     new-hash))
   
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun print-generic-object (obj)
+  "Writes out the object as a generic slot => value list"
+  (print-hash-table-1 (object-to-hash obj)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Numerical routines
 
