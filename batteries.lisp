@@ -62,6 +62,8 @@
 
 (in-package :batteries)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (ql:quickload "alexandria")
 ;; Check to see if the package 'clos' comes standard
 (ql:quickload "closer-mop")
@@ -72,9 +74,11 @@
 
 (defparameter *run-unit-tests* nil)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun expect (expr1 expr2)
   (equal expr1 expr2))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmacro with-running-unit-tests (&rest test-list)
   (when  *run-unit-tests*
     (labels ((sum (seq)  (reduce '+ seq)))
@@ -97,6 +101,7 @@
 ;;; YEAH
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun uniqueize (x)
 "Return a list that is unique. Recursive, O(n^2)"
   (unless (endp x)
@@ -111,6 +116,7 @@
   (expect '(1 2 3 4) (uniqueize '(1 2 2 3 4 ))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun flatten (x)
   "Descend into the supplied list until an atom is hit.
 Aappend the atom to the flattened rest
@@ -131,11 +137,13 @@ Aappend the atom to the flattened rest
     (expect '(1 2 3) (flatten '(1 (2) 3)))
     (expect '(3 2 1 -1) (flatten '(((((3)) 2) 1) -1))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun join ( sep seq)
   "Returns the seq interspersed with sep"
    (butlast (mapcan #'(lambda (x) (list x sep))
 	   seq)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun join-values (sep &rest things)
   (join sep things))
 
@@ -146,6 +154,7 @@ Aappend the atom to the flattened rest
   (expect '(1 3 2 3 5) (join 3 '(1 2 5))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun upto (v l)
   "sublist of l, up to first occurance of v;
  everything if no v"
@@ -159,6 +168,7 @@ Aappend the atom to the flattened rest
   (expect '(1 2 3 4 5)  (upto 6 '(1 2 3 4 5))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun after (v l)
   "Returns everything after `v` in `l`
 If `v` doesn't exist, return nil
@@ -169,9 +179,10 @@ Inverse of upto"
 	    (+ 1 (position v l)))
 	  (length l)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; List in List routines
 
-;;Simplifying function that handles lists-in-lists
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun heads (lists)
   "gets the fronts of the lists in lists"
   (mapcar #'(lambda (x) (elt x 0))
@@ -186,12 +197,13 @@ Inverse of upto"
       (expect (heads '(((10) 30 50) ((20) 40 60))) '((10) (20))))
 
 
-;;Simplifying function that handles lists-in-lists
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun tails (lists)
   "Gets the rests of the lists in lists"
   (mapcar #'(lambda (x) (subseq x 1))
 	  lists))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun zip (lists)
   "The classic zip function reimplemented for multiple lists
 
@@ -216,6 +228,7 @@ Iterative, due to amusing stack overflows on large lists."
 	  (zip '((1 2 3) (4 5 6) (7 8 9)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun firstn (n l)
   "Returns the first `n` of `l`
 
@@ -231,16 +244,24 @@ Raises an error if n > length of l"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Hash functions
+
+;; These provide a visual regularity in how hashes are accessed and
+;; provide more visual meaning than using a 'get' for both setting and
+;; getting.  However, they are not setf'able.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun hashset (hash key val)
   (setf (gethash key hash) val))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun hashget(hash key)
   (gethash key hash))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun hashdel(hash key)
   (remhash key hash))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun string-hash-table-1 (hash)
   "Returns a string of the hash table, no recursion"
   (let ((accum))
@@ -252,12 +273,13 @@ Raises an error if n > length of l"
 				    (gethash var hash)))))
     accum))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun print-hash-table-1 (hash)
   "Prints the hash table, no recursion"
   (format t (string-hash-table-1 hash)))
 
 ;;TODO: turn ths into a macro
-;; TODO2: Why?
+;; TODO2: Why? Think about this more.
 (defun make-hash (&key (test 'eql))
   "Rename, with the same naming scheme as the make-instance function"
   (make-hash-table :test test))
@@ -268,6 +290,8 @@ Raises an error if n > length of l"
   "Writes string as line"
   (format t "~a~%" str))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TODO: Why is this a macro?
 (defmacro emit (str &rest stuff)
   "Quick dump to stdout"
   (format t str stuff))
@@ -286,6 +310,7 @@ Raises an error if n > length of l"
   (expect "abc" (concat-list '("abc"))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun chomp (s)
   "Trims the right side off"
   (string-right-trim '(#\Space #\Tab #\Newline) s))
@@ -295,6 +320,7 @@ Raises an error if n > length of l"
     (expect "abc" (chomp "abc
  ")))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun join-string (sep seq)
   "Joins seq with sep.
 Expects sep to be a string.
@@ -309,6 +335,7 @@ Expects seq to be a sequence of strings"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Object creation macros
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun build-var (classname var)
   (let ((variable-symbol (if (consp var) 
 			     (first var) 
@@ -329,13 +356,14 @@ Expects seq to be a sequence of strings"
 
   (expect
    '(BAR :INITFORM QUUX :ACCESSOR FOO-BAR :INITARG :BAR)
-o   (build-var 'foo '(bar quux))))
+   (build-var 'foo '(bar quux))))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun build-varlist (classname varlist)
    (loop for var in varlist
          collect (build-var classname var)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmacro def-ez-class (name &optional varlist &key doc)
   (let ((docpair nil)
 	(vars (loop for var in varlist
@@ -349,6 +377,7 @@ o   (build-var 'foo '(bar quux))))
        ,vars
        ,docpair)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmacro def-ez-class-ctor (name varlist)
   "
 ;(defun make-name (&key (bar nil))
@@ -376,22 +405,24 @@ o   (build-var 'foo '(bar quux))))
 	(make-instance (quote ,name)
 		       ,@ctor-args))))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Note: this macro makes for a good deal less typing for your
+;; 'average' POD class structure.
 (defmacro defobject (name varlist &key (doc nil))
-  "Defines a class name
+  "Defines a class `name`
 
-name will have its vars as:
-  initform as nil
-  accessor function as name-var
+`name` will have its variables with these settings:
+  initform as nil (or specified)
+  accessor function as `name-var`
   initarg as :var
 
 If a var is passed in as a pair (var val), val will become the
-initarg.
+initform.
 
 A make-`name` function definition will spring into existance
 
 Example:
-;(defobject epic (you have no idea) :doc \"some docs bro\")
+;(defobject world (population-normals population-wizards population-dragons) :doc ''Fun place!'')
 "
   `(progn
      (def-ez-class ,name ,varlist :doc ,doc)
@@ -399,12 +430,15 @@ Example:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; CLOS manipulation routines
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun class-slots-symbols (class-instance)
   "Returns a list of the symbols used in the class slots"
   (mapcar 'closer-mop:slot-definition-name
 	  (closer-mop:class-slots
 	   (class-of class-instance))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun object-to-hash (obj)
   "Reflects over the slots of `obj`, and returns a hash table mapping
 slots to their values"
@@ -417,19 +451,25 @@ slots to their values"
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Numerical routines
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun sum (seq)
   (reduce '+ seq))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun range (bottom top)
   "Inclusive Range.
 Generates a range from bottom to top on the integers"
   (loop for i from bottom to top collect i))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun neg (num)
   (- 0 num))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Shell  integration
+;; Shell integration routines
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun system (cmd &optional (args nil)  &key stdin-stream)
   "system runs `cmd` with optional `args`
 
@@ -453,12 +493,14 @@ Output is returned as a pair (STDOUT, STDERR) "
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; file operations
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun copy-stream (in out)
    (loop for line = (read-line in nil nil)
          while line
          do (write-line line out)))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun write-file (name content)
   "Writes an 8-bit byte file"
   (with-open-file (stream  name
@@ -466,7 +508,7 @@ Output is returned as a pair (STDOUT, STDERR) "
                            :if-exists :supersede
                            :if-does-not-exist :create
 			   :element-type  '(unsigned-byte 8))
-		  (write-sequence content stream))
+    (write-sequence content stream))
   name)
 
 
@@ -502,7 +544,8 @@ Output is returned as a pair (STDOUT, STDERR) "
     (let ((seq (make-array (file-length fin)
 			 :element-type '(unsigned-byte 8)
 			 :fill-pointer t)))
-      (setf (fill-pointer seq) (read-sequence seq fin))
+      (setf (fill-pointer seq) 
+	    (read-sequence seq fin))
       (close fin)
       seq)))
 
@@ -514,6 +557,7 @@ Output is returned as a pair (STDOUT, STDERR) "
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Partitioning routines
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun pad-seq (seq n &optional fill-val)
   "Pads a sequence by a multiple of n
  fill-val is defined to be nil normally"
@@ -537,12 +581,17 @@ Output is returned as a pair (STDOUT, STDERR) "
 
 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TODO: move this to a different section
+;; Also, consider if this needs to be a macro.
 (defmacro not-eql (a b)
   `(not (eql ,a ,b)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; (partition-by-index (1 2 3 4 5 6 7 8 9) 2)
 ;; => ((1 3 5 7 9) (2 4 6 8))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun partition-by-index (seq slice &key error-on-indivisible)
   "Partitions seq into slice pieces, walking by slice each part
 If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
@@ -599,9 +648,11 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; CRAP THAT ISN'T INTEGRATIED
+;; routines that havn't been appropriately textually munged into the right section
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;todo: evaluate the split-sequence package
 (defun split-on-space (str)
   (let
       ((s str)
