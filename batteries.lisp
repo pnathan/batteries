@@ -73,7 +73,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit test stuff
 
-(defparameter *run-unit-tests* nil)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *run-unit-tests* nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun expect (expr1 expr2)
