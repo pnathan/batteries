@@ -43,6 +43,7 @@
 
 	   :sum
 	   :range
+	   :range-1
 	   :neg
 
 	   :system
@@ -470,6 +471,12 @@ slots to their values"
 Generates a range from bottom to top on the integers"
   (loop for i from bottom to top collect i))
 
+(defun range-1 (bottom top)
+  "Slightly Exclusive Range.
+Generates a range from bottom to top - 1 on the integers"
+  (let ((top (1- top)))
+    (loop for i from bottom to top collect i)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun neg (num)
   (- 0 num))
@@ -544,7 +551,8 @@ Output is returned as a pair (STDOUT, STDERR) "
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(Defun read-file (filename)
+(defun read-file (filename)
+  ;;TODO: use with-open-file to handle error conditions  
   (let ((fin (open filename
 		   :direction :input
 		   :if-does-not-exist :error
@@ -559,6 +567,7 @@ Output is returned as a pair (STDOUT, STDERR) "
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun read-text-file (filename)
+  ;;TODO: wrap over the (babel|sb-ext):octets-to-string routiens
   "Reads an ASCII file"
   (map 'string #'code-char (read-file filename)))
 
