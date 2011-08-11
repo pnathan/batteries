@@ -22,6 +22,7 @@
 	   :tails
 	   :zip
 	   :firstn
+	   :find-bag-if
 
 	   :hashset
 	   :hashget
@@ -29,6 +30,8 @@
 	   :print-hash-table-1
 	   :string-hash-table-1
 	   :make-hash
+	   :map-hash-to-hash
+	   :filter-hash-to-hash
 
 	   :writeln
 	   :emit
@@ -63,6 +66,19 @@
 	   :load_argv))
 
 (in-package :batteries)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; TODO list
+;; * Unit tests:
+;;   ** map-hash-hash
+;;   ** filter-hash-hash
+;;   ** find-in-bag-if
+;; * Figure out make-hash - why is that function?
+;; * Figure out emits macroology
+;; * Increase reliability of read-file
+;; * Expand the usability of read-text-file
+;; * macroology of not-eql
+;; * replace split-on-space with a split-sequence function?
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -245,6 +261,13 @@ Raises an error if n > length of l"
 
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun find-bag-if (predicate test-bag seq)
+  "Is any of test-bag in seq, using predicate"
+  (intersection test-bag seq :test predicate))
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Hash functions
 
@@ -281,11 +304,35 @@ Raises an error if n > length of l"
   "Prints the hash table, no recursion"
   (format t (string-hash-table-1 hash)))
 
-;;TODO: turn ths into a macro
+;;TODO2: turn ths into a macro
 ;; TODO2: Why? Think about this more.
 (defun make-hash (&key (test 'eql))
   "Rename, with the same naming scheme as the make-instance function"
   (make-hash-table :test test))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun map-hash-to-hash (fn hashtable)
+  "Given a hash table, apply fn to all values and return a new hash
+  table with the same keys mapping to (fn val)"
+  (let* ((hash (make-hash-table))
+	 (fn-wrapper
+	  (lambda (k v)
+	    (setf (gethash k hash) (apply fn (list v))))))
+    (maphash fn-wrapper hashtable)
+    hash))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun filter-hash-to-hash (predicate hashtable)
+  "Given a predicate and a hash table, filter out all elements in the
+  hashtable whose `values` do not return a non-nil value on (predicate
+  value)"
+  (let* ((hash (make-hash-table))
+	 (fn-wrapper
+	  (lambda (k v)
+	    (if (apply predicate (list v))
+		(setf (gethash k hash) v)))))
+    (maphash fn-wrapper hashtable)
+    hash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; STDOUT routines
