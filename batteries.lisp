@@ -744,3 +744,82 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 	sb-ext:*posix-argv*
 	#+CLISP
 	EXT:*ARGS*))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; DOES NOT GENERATE SLIDING WINDOWS.
+;; THESE WINDOWS ARE STEPPED += 2
+(defun sliding-window-2-wide (index data-read data-to-read)
+  (and (not (eql index 0))
+        (oddp index)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Generator-y thing
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun take-predicate-generator (sequence predicate)
+  "Generates a closure.
+
+Said closure...
+
+Reads `sequence` until predicate is T. At that point, the read values
+are returned.  Not terribly fast.
+
+The predicate must take index, data-read, and data-to-be-read
+
+Next time it is called, the same thing happens.
+"
+  (let
+      ((index 0)
+       (last-run-pointer 0)
+       (data-read nil)
+       (data-to-read nil)
+       (cached-length (length sequence)))
+    (lambda ()
+      (do
+       ;; Variables are held in the let
+       ()
+       ;; Termination condition is below
+       (nil)
+
+	;; went too far.
+	(when (> index cached-length) (return nil))
+
+	;;Increment data
+	(setf data-read (subseq sequence 0 index))
+	(setf data-to-read (subseq sequence index))
+	   (setf index (1+ index))
+
+
+	;;Typical DO is before body operation: this makes an 'after' evaluation
+	;;Termination conditions
+	(cond
+	  ;; went too far
+	  ((> index cached-length)
+	   (return nil))
+
+	  ;;Predicate... or overrun.
+	  ((or (funcall predicate index data-read data-to-read)
+	       (= index cached-length))
+
+	   (let
+	       ;;What is returned
+	       ((returned-sequence (subseq sequence last-run-pointer index)))
+
+	     (setf last-run-pointer index)
+
+	     (return returned-sequence))))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun gather-generator (sequence predicate)
+  "Runs the generator on sequence and collects the results"
+  (let ((generator (take-predicate-generator sequence predicate)))
+    (labels ((collector ()
+		;; run the generator
+		(let ((data (funcall generator)))
+		  ;; If we got something
+		  (if data
+		      (cons data (collector))
+		      nil))))
+       (collector))))
+
