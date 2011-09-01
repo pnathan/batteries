@@ -18,6 +18,7 @@
 	   :join-values
 	   :upto
 	   ;;:after			;Conflicts ltk:after
+	   :final
 	   :heads
 	   :tails
 	   :zip
@@ -63,7 +64,13 @@
 	   :partition-padded
 
 	   :*argv*
-	   :load_argv))
+	   :load_argv
+
+	   :sliding-window-2-wide
+	   :sliding-chunker
+	   :take-predicate-generator
+	   :gather-generator
+	   ))
 
 (in-package :batteries)
 
@@ -197,6 +204,10 @@ Inverse of upto"
 	      (length l)
 	    (+ 1 (position v l)))
 	  (length l)))
+
+(defun final (seq)
+  "Returns the last element of `seq`"
+  (elt (reverse seq) 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; List in List routines
@@ -748,16 +759,19 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; DOES NOT GENERATE SLIDING WINDOWS.
-;; THESE WINDOWS ARE STEPPED += 2
 (defun sliding-window-2-wide (index data-read data-to-read)
-  (and (not (eql index 0))
-        (oddp index)))
+  (> index 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun sliding-chunker (sequence last-run index)
+  (subseq sequence
+	  (max 0 (1- last-run))
+	  index))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generator-y thing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun take-predicate-generator (sequence predicate)
+(defun take-predicate-generator (sequence predicate chunker)
   "Generates a closure.
 
 Said closure...
@@ -804,16 +818,16 @@ Next time it is called, the same thing happens.
 
 	   (let
 	       ;;What is returned
-	       ((returned-sequence (subseq sequence last-run-pointer index)))
+	       ((returned-sequence (funcall chunker sequence last-run-pointer index)))
 
 	     (setf last-run-pointer index)
 
 	     (return returned-sequence))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun gather-generator (sequence predicate)
+(defun gather-generator (sequence predicate chunker)
   "Runs the generator on sequence and collects the results"
-  (let ((generator (take-predicate-generator sequence predicate)))
+  (let ((generator (take-predicate-generator sequence predicate chunker)))
     (labels ((collector ()
 		;; run the generator
 		(let ((data (funcall generator)))
