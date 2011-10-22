@@ -13,11 +13,14 @@
 	   :with-running-unit-tests
 
 	   :uniqueize
+	   :maxlist
+	   :in
+	   :every-other
 	   :flatten
 	   :join
 	   :join-values
 	   :upto
-	   ;;:after			;Conflicts ltk:after
+	   :after			
 	   :final
 	   :heads
 	   :tails
@@ -30,9 +33,10 @@
 	   :hashdel
 	   :print-hash-table-1
 	   :string-hash-table-1
-	   :make-hash
 	   :map-hash-to-hash
 	   :filter-hash-to-hash
+	   :mergable-hash-table-p
+	   :merge-hash-table
 
 	   :writeln
 	   :emit
@@ -49,6 +53,7 @@
 	   :range
 	   :range-1
 	   :neg
+	   :true-p
 
 	   :system
 
@@ -125,6 +130,34 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; List operations.
 ;;; YEAH
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun maxlist (list)
+  "Max of a list"
+  (reduce #'max list))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun in (thing seq &key (test 'eql))
+  "Is thing in the sequence? Defaults to using EQL as the test"
+  (find thing seq :test test))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun every-other (seq &key (flipflop nil))
+  "Returns every other element in `seq`.
+Set :flipflop to T to take the even-indexed ones"
+  (if seq
+      (if flipflop
+	  (every-other (cdr seq)
+		       :flipflop (not flipflop))
+	  (cons (car seq)
+		(every-other (cdr seq)
+			     :flipflop
+			     (not flipflop))))))
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -299,6 +332,31 @@ Raises an error if n > length of l"
   (remhash key hash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun mergable-hash-table-p (hash-a hash-b)
+  "Are the two hash tables mergeable, that is, the keys do not
+collide"
+  (not (intersection (alexandria:hash-table-keys hash-a)
+		     (alexandria:hash-table-keys hash-b))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun merge-hash-table (hash-a hash-b)
+  "Merge the two hash tables.
+
+Returns a new hash table.
+
+Does not respect key collisions"
+
+  (let ((new-hash-table (make-hash-table)))
+    (maphash #'(lambda (k v)
+	       (hashset new-hash-table k v))
+	     hash-a)
+
+    (maphash #'(lambda (k v)
+	       (hashset new-hash-table k v))
+	     hash-b)
+    new-hash-table))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun string-hash-table-1 (hash)
   "Returns a string of the hash table, no recursion"
   (let ((accum))
@@ -314,12 +372,6 @@ Raises an error if n > length of l"
 (defun print-hash-table-1 (hash)
   "Prints the hash table, no recursion"
   (format t (string-hash-table-1 hash)))
-
-;;TODO2: turn ths into a macro
-;; TODO2: Why? Think about this more.
-(defun make-hash (&key (test 'eql))
-  "Rename, with the same naming scheme as the make-instance function"
-  (make-hash-table :test test))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun map-hash-to-hash (fn hashtable)
@@ -534,6 +586,11 @@ Generates a range from bottom to top on the integers"
 Generates a range from bottom to top - 1 on the integers"
   (let ((top (1- top)))
     (loop for i from bottom to top collect i)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun true-p (var)
+  "When you want to test for truth, and not get the result back"
+  (not (not var)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun neg (num)
