@@ -41,6 +41,7 @@
 	   :writeln
 	   :emit
 	   :concat-list
+	   :strcat
 	   :chomp
 	   :join-string
 
@@ -422,6 +423,11 @@ Does not respect key collisions"
   (expect "abc" (concat-list '("ab" "c")))
   (expect "abc" (concat-list '("abc"))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun strcat (&rest list)
+  "Concatenates all the strings that are passed in"
+  (concat-list list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun chomp (s)
