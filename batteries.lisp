@@ -69,16 +69,16 @@
 	   :partition-by-index
 	   :partition-padded
 
-	   :*argv*
-	   :load_argv
+	   :getargs
 
 	   :sliding-window-2-wide
 	   :sliding-chunker
 	   :take-predicate-generator
 	   :gather-generator
-	   ))
 
-(in-package :batteries)
+	   :getcwd
+	   :join-paths
+	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list
@@ -94,11 +94,34 @@
 ;; * replace split-on-space with a split-sequence function?
 
 
+(in-package :batteries)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(ql:quickload "alexandria")
+(ql:quickload :alexandria)
 ;; Check to see if the package 'clos' comes standard
-(ql:quickload "closer-mop")
+(ql:quickload :closer-mop)
 
+;; For manipulation of paths
+(ql:quickload :iolib)
+(ql:quickload :iolib.os)
+(ql:quickload :iolib.pathnames)
+
+(use-package :iolib.pathnames)
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun getcwd ()
+  (iolib.pathnames:file-path-namestring
+   (iolib.pathnames:file-path
+    (iolib.os:current-directory))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun join-paths (&rest paths)
+  (let ((delimiter (string  iolib.pathnames:+directory-delimiter+ )))
+    (join-string 
+     delimiter
+     paths)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit test stuff
@@ -805,10 +828,7 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment management
 (defvar *argv*
-  #+SBCL
-  sb-ext:*posix-argv*
-  #+CLISP
-  EXT:*ARGS*
+  nil
   "Argv. Aliased to allow for multi-compiler use")
 
 (defun load_argv ()
@@ -818,6 +838,11 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 	sb-ext:*posix-argv*
 	#+CLISP
 	EXT:*ARGS*))
+
+(defun getargs ()
+  (unless *argv*
+    (load_argv))
+  *argv*)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
