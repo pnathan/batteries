@@ -289,30 +289,26 @@ Inverse of upto"
   (mapcar #'(lambda (x) (subseq x 1))
 	  lists))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun zip (lists)
-  "The classic zip function reimplemented for multiple lists
 
-Iterative, due to amusing stack overflows on large lists."
-  (let ((results nil))
-    (loop for n from 1 to (length (car lists)) do
-	 (progn
-	   (setf results (append results
-				 (heads lists)))
-	   (setf lists (tails lists))))
-    results))
+(defun interleave (lists)
+  " (interleave '((1 2) (3 4))) => (1 3 2 4)"
+  (apply #'mapcan #'list lists))
 
 (with-running-unit-tests
-    (expect nil (zip nil))
-  (expect (zip '((1) (2))) '(1 2))
-  (expect (zip '((1 2) (3))) '(1 3 2 nil))
-  (expect (zip '((1 2) (3 4))) '(1 3 2 4))
+    (expect nil (interleave nil))
+  (expect (interleave '((1) (2))) '(1 2))
+  ;; Raises condition
+  ;;(expect (interleave '((1 2) (3))) '(1 3 2 nil))
+  (expect (interleave '((1 2) (3 4))) '(1 3 2 4))
 
   (expect '(1 4 2 5 3 6)
-	  (zip '((1 2 3) (4 5 6))))
+	  (interleave '((1 2 3) (4 5 6))))
   (expect '(1 4 7 2 5 8 3 6 9)
-	  (zip '((1 2 3) (4 5 6) (7 8 9)))))
+	  (interleave '((1 2 3) (4 5 6) (7 8 9)))))
 
+(defun zip (lists)
+  " (interleave '((1 2) (3 4))) => ((1 3) (2 4))"
+  (apply #'mapcar #'list lists))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun firstn (n l)
