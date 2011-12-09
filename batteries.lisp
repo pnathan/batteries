@@ -437,9 +437,7 @@ Does not respect key collisions"
 ;;; string operations
 (defun concat-list(seq)
   "Concatenates a list of strings"
-  (reduce #'(lambda (r s)
-	      (concatenate 'string r s))
-	  seq))
+  (apply 'concatenate 'string seq))
 
 (with-running-unit-tests
     (expect "abc" (concat-list '("a" "b" "c")))
@@ -467,9 +465,7 @@ Does not respect key collisions"
   "Joins seq with sep.
 Expects sep to be a string.
 Expects seq to be a sequence of strings"
-  (reduce #'(lambda (x y)
-	      (concatenate 'string x y))
-	  (join sep seq)))
+  (apply #'concatenate 'string (join sep seq)))
 
 (with-running-unit-tests
     (expect "a-b-c" (join-string "-" '("a" "b" "c"))))
