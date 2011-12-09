@@ -86,8 +86,6 @@
 ;;   ** map-hash-hash
 ;;   ** filter-hash-hash
 ;;   ** find-in-bag-if
-;; * Figure out make-hash - why is that function?
-;; * Figure out emits macroology
 ;; * Increase reliability of read-file
 ;; * Expand the usability of read-text-file
 ;; * macroology of not-eql
@@ -126,6 +124,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit test stuff
 
+;; So that this happens 'prior' to macro expansion.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defparameter *run-unit-tests* nil))
 
@@ -395,7 +394,7 @@ Does not respect key collisions"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun print-hash-table-1 (hash)
   "Prints the hash table, no recursion"
-  (format t (string-hash-table-1 hash)))
+  (format t  "~a" (string-hash-table-1 hash)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun map-hash-to-hash (fn hashtable)
@@ -428,10 +427,9 @@ Does not respect key collisions"
   (format t "~a~%" str))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; TODO: Why is this a macro?
-(defmacro emit (str &rest stuff)
+(defun emit (str &rest stuff)
   "Quick dump to stdout"
-  (format t str stuff))
+  (apply #'format t str stuff))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; string operations
@@ -740,9 +738,8 @@ Output is returned as a pair (STDOUT, STDERR) "
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO: move this to a different section
-;; Also, consider if this needs to be a macro.
-(defmacro not-eql (a b)
-  `(not (eql ,a ,b)))
+(defun not-eql (a b)
+  (not (eql a b)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; (partition-by-index (1 2 3 4 5 6 7 8 9) 2)
