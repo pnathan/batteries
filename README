@@ -1,8 +1,13 @@
-Batteries is what I've needed to fire up my Lisp programming.  It is
-an array of different utility routines and classes which help me.
+My personal library.
 
-The license is AGPL 3.0. 
+Batteries "energizes" my Lisp development.
 
-If you want to use this for commercial purposes, contact me.
+Particularly handy for me is the DEFOBJECT macro. It wraps a DEFCLASS declaration and creates a make-objectname function. 
+It approximates a DEFSTRUCT semantic, but generates CLOS classes instead. I like it when I want a bog-standard 
+C++-y class.
 
-pnathan@vandals.uidaho.edu
+Licenses are popular to have on source code. :-) 
+This license is AGPL 3.0.  That's very restrictive. If you *really* need it to be another license, 
+pnathan@vandals.uidaho.edu is my email.
+
+HTH.
