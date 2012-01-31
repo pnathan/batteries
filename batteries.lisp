@@ -78,6 +78,8 @@
 
 	   :getcwd
 	   :join-paths
+
+	   :with-condition-retries
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -86,10 +88,9 @@
 ;;   ** map-hash-hash
 ;;   ** filter-hash-hash
 ;;   ** find-in-bag-if
-;; * Increase reliability of read-file
-;; * Expand the usability of read-text-file
-;; * macroology of not-eql
 ;; * replace split-on-space with a split-sequence function?
+;; * Consider moving the iolib routines into their own lib - they are
+;;   slow to compile
 
 
 (in-package :batteries)
@@ -97,6 +98,8 @@
 (ql:quickload :alexandria)
 ;; Check to see if the package 'clos' comes standard
 (ql:quickload :closer-mop)
+;;For file reading
+(ql:quickload :babel)
 
 ;; For manipulation of paths
 (ql:quickload :iolib)
@@ -126,7 +129,7 @@
 
 ;; So that this happens 'prior' to macro expansion.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *run-unit-tests* nil))
+  (defparameter *run-unit-tests* t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun expect (expr1 expr2)
@@ -152,8 +155,6 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; List operations.
-;;; YEAH
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun maxlist (list)
@@ -168,7 +169,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun every-other (seq &key (flipflop nil))
   "Returns every other element in `seq`.
-Set :flipflop to T to take the even-indexed ones"
+Set :flipflop to T to take the even-indexed ones
+
+Note: has nothing to do with flipflow circuit elements."
   (if seq
       (if flipflop
 	  (every-other (cdr seq)
@@ -186,6 +189,8 @@ Set :flipflop to T to take the even-indexed ones"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun uniqueize (x &key (test #'eql))
   "Return a list that is unique. Recursive, O(n^2)"
+  ;; Another implementation might be to develop a hash table-based
+  ;; approach ala perl's uniquize approach
    (unless (endp x)
      (adjoin (car x) 
 	     (uniqueize (cdr x) :test test) 
@@ -203,8 +208,7 @@ Set :flipflop to T to take the even-indexed ones"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun flatten (x)
   "Descend into the supplied list until an atom is hit.
-Aappend the atom to the flattened rest
-"
+Append the atom to the flattened rest"
   (if (endp x)
       x
       (if (atom (car x ))
@@ -221,12 +225,16 @@ Aappend the atom to the flattened rest
     (expect '(1 2 3) (flatten '(1 (2) 3)))
     (expect '(3 2 1 -1) (flatten '(((((3)) 2) 1) -1))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join ( sep seq)
-  "Returns the seq interspersed with sep"
-   (butlast (mapcan #'(lambda (x) (list x sep))
-	   seq)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun join ( sep list)
+  "Returns the seq interspersed with sep as a list"
+   (butlast (mapcan #'(lambda (x) (list x sep))
+	   list)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Sequence functions - both array and lists
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun join-values (sep &rest things)
   (join sep things))
@@ -240,7 +248,7 @@ Aappend the atom to the flattened rest
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun upto (v l)
-  "sublist of l, up to first occurance of v;
+  "subsequence of l, up to first occurance of v;
  everything if no v"
   (subseq l 0 (position v l) ))
 
@@ -273,7 +281,8 @@ Inverse of upto"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun heads (lists)
   "gets the fronts of the lists in lists"
-  (mapcar #'(lambda (x) (elt x 0))
+  (mapcar #'(lambda (x)
+	      (car x))
 	  lists))
 
 (with-running-unit-tests
@@ -291,13 +300,16 @@ Inverse of upto"
   (mapcar #'(lambda (x) (subseq x 1))
 	  lists))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun interleave (lists)
   " (interleave '((1 2) (3 4))) => (1 3 2 4)"
-  (apply #'mapcan #'list lists))
+  (when lists
+      (apply #'mapcan #'list lists)))
 
 (with-running-unit-tests
     (expect nil (interleave nil))
+  (expect '(nil nil) (interleave '((nil) (nil))))
+  (expect nil (interleave '(nil nil)))
   (expect (interleave '((1) (2))) '(1 2))
   ;; Raises condition
   ;;(expect (interleave '((1 2) (3))) '(1 3 2 nil))
@@ -305,12 +317,19 @@ Inverse of upto"
 
   (expect '(1 4 2 5 3 6)
 	  (interleave '((1 2 3) (4 5 6))))
+
   (expect '(1 4 7 2 5 8 3 6 9)
 	  (interleave '((1 2 3) (4 5 6) (7 8 9)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun zip (lists)
-  " (interleave '((1 2) (3 4))) => ((1 3) (2 4))"
+  " (zip '((1 2) (3 4))) => ((1 3) (2 4))"
   (apply #'mapcar #'list lists))
+
+(with-running-unit-tests
+    (expect (zip '(nil nil nil)) nil)
+    (expect (zip '((1 2) (3 4))) '((1 3) (2 4)))
+    (expect (zip '((1 2) (3 4) (5 6))) '((1 3 5) (2 4 6))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun firstn (n l)
@@ -380,14 +399,11 @@ Does not respect key collisions"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun string-hash-table-1 (hash)
   "Returns a string of the hash table, no recursion"
-  (let ((accum))
-    (loop for var in (alexandria:hash-table-keys hash) do
-	 (setf accum
-	       (concatenate 'string
-			    accum
-			    (format nil "~a => ~a~&" var
-				    (gethash var hash)))))
-    accum))
+  (let ((accum
+	 (loop for var in (alexandria:hash-table-keys hash) collect
+	      (format nil "~a => ~a~&" var
+		      (gethash var hash)))))
+    (format nil "~{~a~}" accum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun print-hash-table-1 (hash)
@@ -541,7 +557,8 @@ Expects seq to be a sequence of strings"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Note: this macro makes for a good deal less typing for your
-;; 'average' POD class structure.
+;; 'average' POD class structure. It's similar to DEFSTRUCT, but
+;; instead is a "normal" CLOS object.
 (defmacro defobject (name varlist &key (doc nil))
   "Defines a class `name`
 
@@ -556,8 +573,7 @@ initform.
 A make-`name` function definition will spring into existance
 
 Example:
-;(defobject world (population-normals population-wizards population-dragons) :doc ''Fun place!'')
-"
+;(defobject world (population-normals population-wizards population-dragons) :doc ''Fun place!'')"
   `(progn
      (def-ez-class ,name ,varlist :doc ,doc)
      (def-ez-class-ctor ,name ,varlist)))
@@ -615,7 +631,7 @@ Generates a range from bottom to top - 1 on the integers"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun neg (num)
-  (- 0 num))
+  (- num))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Shell integration routines
@@ -688,24 +704,23 @@ Output is returned as a pair (STDOUT, STDERR) "
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun read-file (filename)
-  ;;TODO: use with-open-file to handle error conditions  
-  (let ((fin (open filename
+  "Reads `filename` as a sequence of unsigned 8-bit bytes, no
+encoding"
+  (with-open-file (fin filename
 		   :direction :input
 		   :if-does-not-exist :error
-		   :element-type '(unsigned-byte 8))))
+		   :element-type '(unsigned-byte 8))
     (let ((seq (make-array (file-length fin)
-			 :element-type '(unsigned-byte 8)
-			 :fill-pointer t)))
+			   :element-type '(unsigned-byte 8)
+			   :fill-pointer t)))
       (setf (fill-pointer seq) 
 	    (read-sequence seq fin))
-      (close fin)
       seq)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun read-text-file (filename)
-  ;;TODO: wrap over the (babel|sb-ext):octets-to-string routiens
   "Reads an ASCII file"
-  (map 'string #'code-char (read-file filename)))
+  (babel:octets-to-string  (read-file filename)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Partitioning routines
@@ -737,6 +752,7 @@ Output is returned as a pair (STDOUT, STDERR) "
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO: move this to a different section
 (defun not-eql (a b)
+  "Simplifies the task of testing not-equality."
   (not (eql a b)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -921,10 +937,10 @@ Next time it is called, the same thing happens.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmacro with-condition-retries(retries expected-errors fail-function &body body)
   "Attempts to execute `body` `retries` times, watching for
-`expected-errors`.  Optionally, if `fail-function` is set, dach time a
-failure occurs, `fail-function` is executed.
+`expected-errors`.  Optionally, if `fail-function` is set, each time a
+failure occurs, prior to retrying, `fail-function` is executed.
 
-Other conditions will exit out of this macro"
+Other conditions beside `expected-errors` will exit out of this macro"
    (let ((counter (gensym))
 	 (result (gensym))
 	 (start-tag (gensym))
