@@ -184,10 +184,12 @@ Set :flipflop to T to take the even-indexed ones"
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun uniqueize (x)
-"Return a list that is unique. Recursive, O(n^2)"
-  (unless (endp x)
-    (adjoin (car x) (uniqueize (cdr x)))))
+(defun uniqueize (x &key (test #'eql))
+  "Return a list that is unique. Recursive, O(n^2)"
+   (unless (endp x)
+     (adjoin (car x) 
+	     (uniqueize (cdr x) :test test) 
+	     :test test)))
 
 (with-running-unit-tests
     (expect nil (uniqueize niL))
@@ -914,3 +916,40 @@ Next time it is called, the same thing happens.
 		      nil))))
        (collector))))
 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmacro with-condition-retries(retries expected-errors fail-function &body body)
+  "Attempts to execute `body` `retries` times, watching for
+`expected-errors`.  Optionally, if `fail-function` is set, dach time a
+failure occurs, `fail-function` is executed.
+
+Other conditions will exit out of this macro"
+   (let ((counter (gensym))
+	 (result (gensym))
+	 (start-tag (gensym))
+	 (error-handler 	    
+	  #'(lambda (c)
+	    (let ((r (find-restart 'handler c)))
+	      (when r 
+		(invoke-restart r c))))))
+
+     `(let ((,counter 0)
+	    (,result))
+	    (tagbody
+	       ,start-tag
+	       (restart-case
+		   (handler-bind
+			,(mapcar #'(lambda (error-val)
+				     (list error-val   error-handler))
+				 expected-errors)
+		     (setf ,result ,@body))
+		 ;;the restart pointed at by the error-handler lambda
+		 (handler (&rest args)
+		   (declare (ignore args))
+		   (incf ,counter)
+		   (unless (> ,counter ,retries)
+		     (when ,fail-function
+		       (funcall ,fail-function))
+		     (go ,start-tag)))))
+	,result)))
