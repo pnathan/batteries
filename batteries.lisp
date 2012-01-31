@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; library.lisp
-;; (c) Paul Nathan 2011
+;; (c) Paul Nathan 2011, 2012
 ;; Agglutunation of useful Lisp routines.
 ;; Has dependancy on Quicklisp
 ;; General goal is to be some Batteries for Common Lisp
@@ -91,6 +91,7 @@
 ;; * replace split-on-space with a split-sequence function?
 ;; * Consider moving the iolib routines into their own lib - they are
 ;;   slow to compile
+;; * Add SPLITLINES for text files
 
 
 (in-package :batteries)
@@ -844,7 +845,13 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 	#+SBCL
 	sb-ext:*posix-argv*
 	#+CLISP
-	EXT:*ARGS*))
+	EXT:*ARGS*
+	#+CCL
+        *UNPROCESSED-COMMAND-LINE-ARGUMENTS*
+	#-(or SBCL CLISP CCL) (error "Lisp system not yet supported")))
+
+;; Known systems that I should support:
+;; cmu allegro LispWorks abcl
 
 (defun getargs ()
   (unless *argv*
