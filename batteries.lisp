@@ -20,7 +20,7 @@
 	   :join
 	   :join-values
 	   :upto
-	   :after			
+	   :after
 	   :final
 	   :heads
 	   :tails
@@ -121,7 +121,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun join-paths (&rest paths)
   (let ((delimiter (string  iolib.pathnames:+directory-delimiter+ )))
-    (join-string 
+    (join-string
      delimiter
      paths)))
 
@@ -193,8 +193,8 @@ Note: has nothing to do with flipflow circuit elements."
   ;; Another implementation might be to develop a hash table-based
   ;; approach ala perl's uniquize approach
    (unless (endp x)
-     (adjoin (car x) 
-	     (uniqueize (cdr x) :test test) 
+     (adjoin (car x)
+	     (uniqueize (cdr x) :test test)
 	     :test test)))
 
 (with-running-unit-tests
@@ -215,7 +215,7 @@ Append the atom to the flattened rest"
       (if (atom (car x ))
 	  (append (list (car x))
 		  (flatten (cdr x)))
-	  (append (flatten (car x)) 
+	  (append (flatten (car x))
 		  (flatten (cdr x ))))))
 
 (with-running-unit-tests
@@ -488,8 +488,8 @@ Expects seq to be a sequence of strings"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun build-var (classname var)
-  (let ((variable-symbol (if (consp var) 
-			     (first var) 
+  (let ((variable-symbol (if (consp var)
+			     (first var)
 			     var))
 	(variable-init-val (if (consp var)
 			       (second var)
@@ -501,7 +501,7 @@ Expects seq to be a sequence of strings"
         :initarg (intern (string variable-symbol) :keyword))))
 
 (with-running-unit-tests
-    (expect 
+    (expect
      '(BAR :INITFORM NIL :ACCESSOR FOO-BAR :INITARG :BAR)
      (build-var 'foo 'bar))
 
@@ -515,18 +515,24 @@ Expects seq to be a sequence of strings"
          collect (build-var classname var)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmacro def-ez-class (name &optional varlist &key doc)
+(defmacro def-ez-class (name &optional varlist &key documentation superclasses)
   (let ((docpair nil)
 	(vars (loop for var in varlist
 		 collect (build-var name var))))
 
-    (if doc
-	(setf docpair (list :documentation doc))
+    (if documentation
+	(setf docpair (list :documentation documentation))
 	(setf docpair (list :documentation "")))
 
-    `(defclass ,name ()
-       ,vars
-       ,docpair)))
+    `(if ,superclasses
+	(defclass ,name
+	   ,superclasses
+	   ,vars
+	   ,docpair)
+	;;else
+	(defclass ,name ()
+	   ,vars
+	   ,docpair))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmacro def-ez-class-ctor (name varlist)
@@ -535,14 +541,14 @@ Expects seq to be a sequence of strings"
 ;(make-instance 'name :bar bar))"
   (let ((initarg-list
 	 (loop for var in varlist collect
-	      (if (consp var) 
+	      (if (consp var)
 		  (list (first var) (second var))
 		  (list var nil))))
 	(ctor-args
 	 (flatten
-	  (loop for var in varlist 
+	  (loop for var in varlist
 	     collect
-	       (let ((var-symbol (if (consp var) 
+	       (let ((var-symbol (if (consp var)
 				     (first var)
 				     var)))
 		     (list (intern (string var-symbol) :keyword) var-symbol))))))
@@ -560,7 +566,7 @@ Expects seq to be a sequence of strings"
 ;; Note: this macro makes for a good deal less typing for your
 ;; 'average' POD class structure. It's similar to DEFSTRUCT, but
 ;; instead is a "normal" CLOS object.
-(defmacro defobject (name varlist &key (doc nil))
+(defmacro defobject (name varlist &key (documentation nil) (superclasses nil))
   "Defines a class `name`
 
 `name` will have its variables with these settings:
@@ -576,7 +582,7 @@ A make-`name` function definition will spring into existance
 Example:
 ;(defobject world (population-normals population-wizards population-dragons) :doc ''Fun place!'')"
   `(progn
-     (def-ez-class ,name ,varlist :doc ,doc)
+     (def-ez-class ,name ,varlist :documentation ,documentation :superclasses ,superclasses)
      (def-ez-class-ctor ,name ,varlist)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -596,10 +602,10 @@ slots to their values"
   (let ((new-hash (make-hash-table))
 	(slot-list (class-slots-symbols obj)))
     (loop for slot in slot-list do
-	 (hashset new-hash (string slot) 
+	 (hashset new-hash (string slot)
 		  (slot-value  obj slot)))
     new-hash))
-  
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun print-generic-object (obj)
@@ -714,7 +720,7 @@ encoding"
     (let ((seq (make-array (file-length fin)
 			   :element-type '(unsigned-byte 8)
 			   :fill-pointer t)))
-      (setf (fill-pointer seq) 
+      (setf (fill-pointer seq)
 	    (read-sequence seq fin))
       seq)))
 
@@ -951,10 +957,10 @@ Other conditions beside `expected-errors` will exit out of this macro"
    (let ((counter (gensym))
 	 (result (gensym))
 	 (start-tag (gensym))
-	 (error-handler 	    
+	 (error-handler
 	  #'(lambda (c)
 	    (let ((r (find-restart 'handler c)))
-	      (when r 
+	      (when r
 		(invoke-restart r c))))))
 
      `(let ((,counter 0)
@@ -976,3 +982,4 @@ Other conditions beside `expected-errors` will exit out of this macro"
 		       (funcall ,fail-function))
 		     (go ,start-tag)))))
 	,result)))
+
