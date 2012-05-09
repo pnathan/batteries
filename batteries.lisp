@@ -125,12 +125,14 @@
      delimiter
      paths)))
 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unit test stuff
 
 ;; So that this happens 'prior' to macro expansion.
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defparameter *run-unit-tests* t))
+  (defparameter *run-unit-tests* nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun expect (expr1 expr2)
@@ -525,12 +527,13 @@ Expects seq to be a sequence of strings"
 	(setf docpair (list :documentation "")))
 
     `(if ,superclasses
-	(defclass ,name
-	   ,superclasses
-	   ,vars
-	   ,docpair)
-	;;else
-	(defclass ,name ()
+	 ,(let ((classes (cadr superclasses)))
+	   `(defclass ,name
+	       ,classes
+	     ,vars
+	     ,docpair))
+	 ;;else
+	 (defclass ,name ()
 	   ,vars
 	   ,docpair))))
 
@@ -580,7 +583,9 @@ initform.
 A make-`name` function definition will spring into existance
 
 Example:
-;(defobject world (population-normals population-wizards population-dragons) :doc ''Fun place!'')"
+;(defobject world (population-normals population-wizards population-dragons)
+  :documentation ''Fun place!'')"
+
   `(progn
      (def-ez-class ,name ,varlist :documentation ,documentation :superclasses ,superclasses)
      (def-ez-class-ctor ,name ,varlist)))
@@ -644,25 +649,34 @@ Generates a range from bottom to top - 1 on the integers"
 ;; Shell integration routines
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun system (cmd &optional (args nil)  &key stdin-stream)
-  "system runs `cmd` with optional `args`
+(defun system (cmd args  &key stdin)
+  "system runs `cmd` with `args`
 
-Output is returned as a pair (STDOUT, STDERR) "
+`args` is a list of 0 or more strings
+
+If `stdin` is set, a string is expected
+
+Output is returned as a triple (STDOUT, STDERR, RETURN-CODE) "
 
   #+clisp (with-open-stream (s1 (ext:run-shell-command cmd :output :stream))
 	   (with-output-to-string (out)
 	     (copy-stream s1 out)))
   #+sbcl
   (let ((stderr (make-string-output-stream))
-	(stdout (make-string-output-stream)))
-    (sb-ext:run-program cmd args
-			:search t
-			:output stdout
-			:error stderr)
-    (list (get-output-stream-string stdout)
-	  (get-output-stream-string stderr)))
+	(stdout (make-string-output-stream))
+	(stdin-stream (make-string-input-stream stdin)))
+    (let ((code (sb-ext:process-exit-code
+		 (sb-ext:run-program cmd args
+				     :search t
+				     :output stdout
+				     :error stderr
+				     :input stdin-stream))))
+      (list (get-output-stream-string stdout)
+	    (get-output-stream-string stderr)
+	    code)))
 
-  #-(or clisp sbcl) (error "Unsupported implementation"))
+  #-(or clisp sbcl)
+  (error "Unsupported implementation"))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
