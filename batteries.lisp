@@ -14,14 +14,14 @@
 
 	   :uniqueize
 	   :maxlist
-	   :in
+;	   :in
 	   :every-other
 	   :flatten
 	   :join
 	   :join-values
 	   :upto
 	   :after
-	   :final
+;	   :final
 	   :heads
 	   :tails
 	   :zip
