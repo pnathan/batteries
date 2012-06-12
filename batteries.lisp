@@ -89,8 +89,6 @@
 ;;   ** filter-hash-hash
 ;;   ** find-in-bag-if
 ;; * replace split-on-space with a split-sequence function?
-;; * Consider moving the iolib routines into their own lib - they are
-;;   slow to compile
 ;; * Add SPLITLINES for text files
 
 
@@ -101,30 +99,6 @@
 (ql:quickload :closer-mop)
 ;;For file reading
 (ql:quickload :babel)
-
-;; For manipulation of paths
-(ql:quickload :iolib)
-(ql:quickload :iolib.os)
-(ql:quickload :iolib.pathnames)
-
-(use-package :iolib.pathnames)
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun getcwd ()
-  (iolib.pathnames:file-path-namestring
-   (iolib.pathnames:file-path
-    (iolib.os:current-directory))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join-paths (&rest paths)
-  (let ((delimiter (string  iolib.pathnames:+directory-delimiter+ )))
-    (join-string
-     delimiter
-     paths)))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -229,9 +203,11 @@ Append the atom to the flattened rest"
     (expect '(3 2 1 -1) (flatten '(((((3)) 2) 1) -1))))
 
 
+(defgeneric join (separator sequence)
+  (:documentation "Returns sequence, joined by separator"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join ( sep list)
+(defmethod join ((sep t) (list list))
   "Returns the seq interspersed with sep as a list"
    (butlast (mapcan #'(lambda (x) (list x sep))
 	   list)))
@@ -248,6 +224,19 @@ Append the atom to the flattened rest"
   (expect '(1 3 2) (join 3 '(1 2)))
   (expect '(1 3 2 3 5) (join 3 '(1 2 5))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmethod join ((sep string) (seq list))
+  "Joins seq with sep.
+Expects sep to be a string.
+Expects seq to be a sequence of strings"
+  ;;workaround to add in the sep - ~{~} doesn't allow multiple format
+  ;;args
+  (let ((fmtstr (format nil "~~{~~A~~^~A~~}" sep)))
+    (format nil fmtstr  seq)))
+
+(with-running-unit-tests
+    (expect "a-b-c" (join "-" '("a" "b" "c"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun upto (v l)
@@ -474,16 +463,6 @@ Does not respect key collisions"
     (expect "abc" (chomp "abc "))
     (expect "abc" (chomp "abc
  ")))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join-string (sep seq)
-  "Joins seq with sep.
-Expects sep to be a string.
-Expects seq to be a sequence of strings"
-  (apply #'concatenate 'string (join sep seq)))
-
-(with-running-unit-tests
-    (expect "a-b-c" (join-string "-" '("a" "b" "c"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Object creation macros
@@ -996,4 +975,3 @@ Other conditions beside `expected-errors` will exit out of this macro"
 		       (funcall ,fail-function))
 		     (go ,start-tag)))))
 	,result)))
-
