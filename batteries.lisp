@@ -12,6 +12,8 @@
 	   :*run-unit-tests*
 	   :with-running-unit-tests
 
+	   :make-temporary-file
+
 	   :uniqueize
 	   :maxlist
 ;	   :in
@@ -80,6 +82,8 @@
 	   :join-paths
 
 	   :with-condition-retries
+
+	   :bash
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -628,7 +632,7 @@ Generates a range from bottom to top - 1 on the integers"
 ;; Shell integration routines
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun system (cmd args  &key stdin)
+(defun system (cmd args  &key (stdin ""))
   "system runs `cmd` with `args`
 
 `args` is a list of 0 or more strings
@@ -654,8 +658,45 @@ Output is returned as a triple (STDOUT, STDERR, RETURN-CODE) "
 	    (get-output-stream-string stderr)
 	    code)))
 
-  #-(or clisp sbcl)
+  #-sbcl
   (error "Unsupported implementation"))
+
+
+(defun make-temporary-file ()
+  "Makes a temporary file readable and writeable by the current user and returns the filename.
+The file is /not/ open. This function should not be used to store
+credentials or other information required to be secure"
+
+  #+sbcl (let ((temp-file-name (sb-posix:mktemp "/tmp/tmpXXXXXXXX")))
+	   (with-open-file (stream temp-file-name
+				   :if-exists :error
+				   :direction :output))
+	   temp-file-name)
+
+
+  #+clisp
+  (error "Clisp is not currentl supported; please contribute a patch accorcing to the following documenation: http://www.clisp.org/impnotes/syscalls.html")
+  #+allegro
+  (progn (error "Allegro is not currently supported; please contribute a patch according to the following documentation:
+		   http://ns2.franz.com/support/documentation/8.0/doc/operators/system/make-temp-file-name.htm"))
+	)
+
+
+
+
+(defun bash (shell-command)
+  "Executes the bash `shell-command` and returns a triple: stdout,
+  stderr, and the return code."
+  (let ((new-shell-file-name (make-temporary-file)))
+    ;; Create a shell script for the bash command
+    (write-text-file new-shell-file-name (format nil "# Automatically Generated~%~A~%"
+						 shell-command))
+    ;; Now execute it with bash.
+    (let ((result (system "bash" (list new-shell-file-name))))
+      ;; Delete the shell script
+      (delete-file new-shell-file-name)
+      ;; And return the result
+      result)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -975,3 +1016,6 @@ Other conditions beside `expected-errors` will exit out of this macro"
 		       (funcall ,fail-function))
 		     (go ,start-tag)))))
 	,result)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
