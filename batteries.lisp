@@ -472,7 +472,7 @@ Does not respect key collisions"
 ;;; Object creation macros
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun build-var (classname var)
+(defun build-var (classname var &key undecorated)
   (let ((variable-symbol (if (consp var)
 			     (first var)
 			     var))
@@ -481,8 +481,10 @@ Does not respect key collisions"
 			       nil)))
   (list variable-symbol
         :initform variable-init-val
-        :accessor (intern (concatenate 'string (string classname) "-"
-                                       (string variable-symbol)))
+        :accessor (if undecorated
+                      (intern (string variable-symbol))
+                      (intern (concatenate 'string (string classname) "-"
+                                           (string variable-symbol))))
         :initarg (intern (string variable-symbol) :keyword))))
 
 (with-running-unit-tests
@@ -494,16 +496,12 @@ Does not respect key collisions"
    '(BAR :INITFORM QUUX :ACCESSOR FOO-BAR :INITARG :BAR)
    (build-var 'foo '(bar quux))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun build-varlist (classname varlist)
-   (loop for var in varlist
-         collect (build-var classname var)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defmacro def-ez-class (name &optional varlist &key documentation superclasses)
+(defmacro def-ez-class (name &optional varlist &key documentation superclasses undecorated)
   (let ((docpair nil)
 	(vars (loop for var in varlist
-		 collect (build-var name var))))
+		 collect (build-var name var :undecorated undecorated))))
 
     (if documentation
 	(setf docpair (list :documentation documentation))
@@ -552,13 +550,19 @@ Does not respect key collisions"
 ;; Note: this macro makes for a good deal less typing for your
 ;; 'average' POD class structure. It's similar to DEFSTRUCT, but
 ;; instead is a "normal" CLOS object.
-(defmacro defobject (name varlist &key (documentation nil) (superclasses nil))
+(defmacro defobject (name varlist
+                     &key
+                       (documentation nil)
+                       undecorated
+                       (superclasses nil))
   "Defines a class `name`
 
 `name` will have its variables with these settings:
   initform as nil (or specified)
   accessor function as `name-var`
   initarg as :var
+
+If `undecorated` is T, then the accessor function will be `var`.
 
 If a var is passed in as a pair (var val), val will become the
 initform.
@@ -570,7 +574,10 @@ Example:
   :documentation ''Fun place!'')"
 
   `(progn
-     (def-ez-class ,name ,varlist :documentation ,documentation :superclasses ,superclasses)
+     (def-ez-class ,name ,varlist
+       :documentation ,documentation
+       :superclasses ,superclasses
+       :undecorated ,undecorated)
      (def-ez-class-ctor ,name ,varlist)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
