@@ -12,6 +12,8 @@
 	   :*run-unit-tests*
 	   :with-running-unit-tests
 
+	   :make-temporary-file
+
 	   :uniqueize
 	   :maxlist
 ;	   :in
@@ -79,6 +81,8 @@
 	   :join-paths
 
 	   :with-condition-retries
+
+	   :bash
 	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -88,8 +92,6 @@
 ;;   ** filter-hash-hash
 ;;   ** find-in-bag-if
 ;; * replace split-on-space with a split-sequence function?
-;; * Consider moving the iolib routines into their own lib - they are
-;;   slow to compile
 ;; * Add SPLITLINES for text files
 
 
@@ -100,30 +102,6 @@
 (ql:quickload :closer-mop)
 ;;For file reading
 (ql:quickload :babel)
-
-;; For manipulation of paths
-(ql:quickload :iolib)
-(ql:quickload :iolib.os)
-(ql:quickload :iolib.pathnames)
-
-(use-package :iolib.pathnames)
-
-
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun getcwd ()
-  (iolib.pathnames:file-path-namestring
-   (iolib.pathnames:file-path
-    (iolib.os:current-directory))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join-paths (&rest paths)
-  (let ((delimiter (string  iolib.pathnames:+directory-delimiter+ )))
-    (join-string
-     delimiter
-     paths)))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -228,9 +206,11 @@ Append the atom to the flattened rest"
     (expect '(3 2 1 -1) (flatten '(((((3)) 2) 1) -1))))
 
 
+(defgeneric join (separator sequence)
+  (:documentation "Returns sequence, joined by separator"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join ( sep list)
+(defmethod join ((sep t) (list list))
   "Returns the seq interspersed with sep as a list"
    (butlast (mapcan #'(lambda (x) (list x sep))
 	   list)))
@@ -247,6 +227,19 @@ Append the atom to the flattened rest"
   (expect '(1 3 2) (join 3 '(1 2)))
   (expect '(1 3 2 3 5) (join 3 '(1 2 5))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defmethod join ((sep string) (seq list))
+  "Joins seq with sep.
+Expects sep to be a string.
+Expects seq to be a sequence of strings"
+  ;;workaround to add in the sep - ~{~} doesn't allow multiple format
+  ;;args
+  (let ((fmtstr (format nil "~~{~~A~~^~A~~}" sep)))
+    (format nil fmtstr  seq)))
+
+(with-running-unit-tests
+    (expect "a-b-c" (join "-" '("a" "b" "c"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun upto (v l)
@@ -474,15 +467,6 @@ Does not respect key collisions"
     (expect "abc" (chomp "abc
  ")))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun join-string (sep seq)
-  "Joins seq with sep.
-Expects sep to be a string.
-Expects seq to be a sequence of strings"
-  (apply #'concatenate 'string (join sep seq)))
-
-(with-running-unit-tests
-    (expect "a-b-c" (join-string "-" '("a" "b" "c"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; CLOS manipulation routines
@@ -543,7 +527,7 @@ Generates a range from bottom to top - 1 on the integers"
 ;; Shell integration routines
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun system (cmd args  &key stdin)
+(defun system (cmd args  &key (stdin ""))
   "system runs `cmd` with `args`
 
 `args` is a list of 0 or more strings
@@ -571,6 +555,43 @@ Output is returned as a triple (STDOUT, STDERR, RETURN-CODE) "
 
   #-(or clisp sbcl)
   (error "Unsupported implementation"))
+
+
+(defun make-temporary-file ()
+  "Makes a temporary file readable and writeable by the current user and returns the filename.
+The file is /not/ open. This function should not be used to store
+credentials or other information required to be secure"
+
+  #+sbcl (let ((temp-file-name (sb-posix:mktemp "/tmp/tmpXXXXXXXX")))
+	   (with-open-file (stream temp-file-name
+				   :if-exists :error
+				   :direction :output))
+	   temp-file-name)
+
+
+  #+clisp
+  (error "Clisp is not currentl supported; please contribute a patch accorcing to the following documenation: http://www.clisp.org/impnotes/syscalls.html")
+  #+allegro
+  (progn (error "Allegro is not currently supported; please contribute a patch according to the following documentation:
+		   http://ns2.franz.com/support/documentation/8.0/doc/operators/system/make-temp-file-name.htm"))
+	)
+
+
+
+
+(defun bash (shell-command)
+  "Executes the bash `shell-command` and returns a triple: stdout,
+  stderr, and the return code."
+  (let ((new-shell-file-name (make-temporary-file)))
+    ;; Create a shell script for the bash command
+    (write-text-file new-shell-file-name (format nil "# Automatically Generated~%~A~%"
+						 shell-command))
+    ;; Now execute it with bash.
+    (let ((result (system "bash" (list new-shell-file-name))))
+      ;; Delete the shell script
+      (delete-file new-shell-file-name)
+      ;; And return the result
+      result)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -890,3 +911,4 @@ Other conditions beside `expected-errors` will exit out of this macro"
 		       (funcall ,fail-function))
 		     (go ,start-tag)))))
 	,result)))
+
