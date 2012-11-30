@@ -574,7 +574,9 @@ credentials or other information required to be secure"
   #+allegro
   (progn (error "Allegro is not currently supported; please contribute a patch according to the following documentation:
 		   http://ns2.franz.com/support/documentation/8.0/doc/operators/system/make-temp-file-name.htm"))
-	)
+  #-(or allegro clisp sbcl)
+  (error "Unsupported, support is unknown")
+  )
 
 
 
@@ -584,8 +586,9 @@ credentials or other information required to be secure"
   stderr, and the return code."
   (let ((new-shell-file-name (make-temporary-file)))
     ;; Create a shell script for the bash command
-    (write-text-file new-shell-file-name (format nil "# Automatically Generated~%~A~%"
-						 shell-command))
+    (write-text-file
+     new-shell-file-name
+     (format nil "# Automatically Generated~%~A~%" shell-command))
     ;; Now execute it with bash.
     (let ((result (system "bash" (list new-shell-file-name))))
       ;; Delete the shell script
@@ -911,4 +914,3 @@ Other conditions beside `expected-errors` will exit out of this macro"
 		       (funcall ,fail-function))
 		     (go ,start-tag)))))
 	,result)))
-
