@@ -14,6 +14,9 @@
 
 	   :make-temporary-file
 
+	   :switch
+
+	   :extend
 	   :uniqueize
 	   :maxlist
 ;	   :in
@@ -161,11 +164,44 @@ Note: has nothing to do with flipflow circuit elements."
 			     :flipflop
 			     (not flipflop))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmacro switch (test-function thing &rest forms)
+   " When test-function has to get repeatedly applied to thing to
+ determine if the result should be executed, SWITCH may prove beneficial
+ (switch
+     string=
+   input
+   (value
+    thing-to-do-if-value string= input))"
+
+  (let ((cond-form-sym
+	 (append
+	  (list 'COND)
+	  ;; Form up the forms.
+	  (mapcar
+	  #'(lambda (form)
+	      `,(list
+		 (list test-function thing (car form))
+		 (progn (cadr form))))
+	  forms)
+	  ;; have a nice error
+	  `((t
+	     (error
+	      "Unable to match the condition ~a using ~a"
+	      ,thing '#',test-function ))))))
+    cond-form-sym))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
+(defun extend (&rest items)
+  "Collects all the items together into a list; this is identical to a
+1-level flatten"
+  (loop for ele in items
+     nconc
+       (if (listp ele)
+	   ele
+	   (list ele))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun uniqueize (x &key (test #'eql))
   "Return a list that is unique. Recursive, O(n^2)"
@@ -466,6 +502,11 @@ Does not respect key collisions"
     (expect "abc" (chomp "abc "))
     (expect "abc" (chomp "abc
  ")))
+
+(defun explode (input)
+  "Splits the string `input` into a list of elements"
+  (loop for c across input collect c))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
