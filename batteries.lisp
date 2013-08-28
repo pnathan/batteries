@@ -19,14 +19,14 @@
            :extend
            :uniqueize
            :maxlist
-;          :in
+                                        ;          :in
            :every-other
            :flatten
            :join
            :join-values
            :upto
            :after
-;          :final
+                                        ;          :final
            :heads
            :tails
            :zip
@@ -133,7 +133,7 @@
                 test-successes
                 (length test-list))
         (/ test-successes
-         (length test-list))))))
+           (length test-list))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -218,11 +218,11 @@ Append the atom to the flattened rest"
 
 (with-running-unit-tests
     (expect nil (flatten nil))
-    (expect '(1) (flatten '(1)))
-    (expect '(1 2) (flatten '(1 2)))
-    (expect '(1 2) (flatten '(1 (2))))
-    (expect '(1 2 3) (flatten '(1 (2) 3)))
-    (expect '(3 2 1 -1) (flatten '(((((3)) 2) 1) -1))))
+  (expect '(1) (flatten '(1)))
+  (expect '(1 2) (flatten '(1 2)))
+  (expect '(1 2) (flatten '(1 (2))))
+  (expect '(1 2 3) (flatten '(1 (2) 3)))
+  (expect '(3 2 1 -1) (flatten '(((((3)) 2) 1) -1))))
 
 
 (defgeneric join (separator sequence)
@@ -231,8 +231,8 @@ Append the atom to the flattened rest"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defmethod join ((sep t) (list list))
   "Returns the seq interspersed with sep as a list"
-   (butlast (mapcan #'(lambda (x) (list x sep))
-           list)))
+  (butlast (mapcan #'(lambda (x) (list x sep))
+                   list)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sequence functions - both array and lists
@@ -280,12 +280,12 @@ Expects seq to be a sequence of strings"
   "Returns everything after `v` in `l`
 If `v` doesn't exist, return nil
 Inverse of upto"
-    (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
-    (subseq l
-            (if (not (position v l))
-                (length l)
-                (+ 1 (position v l)))
-            (length l)))
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
+  (subseq l
+          (if (not (position v l))
+              (length l)
+              (+ 1 (position v l)))
+          (length l)))
 
 (defun final (seq)
   "Returns the last element of `seq`"
@@ -303,12 +303,12 @@ Inverse of upto"
           lists))
 
 (with-running-unit-tests
-      (expect (heads '()) nil)
-      (expect (heads '(()())) (list nil nil))
-      (expect (heads '((10) (20))) '(10 20))
-      (expect (heads '((10 30) (20 40))) '(10 20))
-      (expect (heads '((10 30 50) (20 40 60))) '(10 20))
-      (expect (heads '(((10) 30 50) ((20) 40 60))) '((10) (20))))
+    (expect (heads '()) nil)
+  (expect (heads '(()())) (list nil nil))
+  (expect (heads '((10) (20))) '(10 20))
+  (expect (heads '((10 30) (20 40))) '(10 20))
+  (expect (heads '((10 30 50) (20 40 60))) '(10 20))
+  (expect (heads '(((10) 30 50) ((20) 40 60))) '((10) (20))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -324,7 +324,7 @@ Inverse of upto"
   (declare (optimize (speed 3) (space 3) (debug 1) (safety 1))
            (list lists))
   (when lists
-      (apply #'mapcan #'list lists)))
+    (apply #'mapcan #'list lists)))
 
 (with-running-unit-tests
     (expect nil (interleave nil))
@@ -350,8 +350,8 @@ Inverse of upto"
 
 (with-running-unit-tests
     (expect (zip '(nil nil nil)) nil)
-    (expect (zip '((1 2) (3 4))) '((1 3) (2 4)))
-    (expect (zip '((1 2) (3 4) (5 6))) '((1 3 5) (2 4 6))))
+  (expect (zip '((1 2) (3 4))) '((1 3) (2 4)))
+  (expect (zip '((1 2) (3 4) (5 6))) '((1 3 5) (2 4 6))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun firstn (n l)
@@ -363,8 +363,8 @@ Raises an error if n > length of l"
 
 (with-running-unit-tests
     (expect nil (firstn 0 '(10 20 30 40)))
-    (expect '(10)  (firstn 1 '(10 20 30 40)))
-    (expect '(10 20 30 40)  (firstn 4 '(10 20 30 40))))
+  (expect '(10)  (firstn 1 '(10 20 30 40)))
+  (expect '(10 20 30 40)  (firstn 4 '(10 20 30 40))))
 
 
 
@@ -412,11 +412,11 @@ Does not respect key collisions"
 
   (let ((new-hash-table (make-hash-table)))
     (maphash #'(lambda (k v)
-               (hashset new-hash-table k v))
+                 (hashset new-hash-table k v))
              hash-a)
 
     (maphash #'(lambda (k v)
-               (hashset new-hash-table k v))
+                 (hashset new-hash-table k v))
              hash-b)
     new-hash-table))
 
@@ -496,7 +496,7 @@ Does not respect key collisions"
 
 (with-running-unit-tests
     (expect "abc" (chomp "abc "))
-    (expect "abc" (chomp "abc
+  (expect "abc" (chomp "abc
  ")))
 
 
@@ -574,8 +574,8 @@ If `stdin` is set, a string is expected
 Output is returned as a triple (STDOUT, STDERR, RETURN-CODE) "
 
   #+clisp (with-open-stream (s1 (ext:run-shell-command cmd :output :stream))
-           (with-output-to-string (out)
-             (copy-stream s1 out)))
+            (with-output-to-string (out)
+              (copy-stream s1 out)))
   #+sbcl
   (let ((stderr (make-string-output-stream))
         (stdout (make-string-output-stream))
@@ -639,9 +639,9 @@ credentials or other information required to be secure"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun copy-stream (in out)
-   (loop for line = (read-line in nil nil)
-         while line
-         do (write-line line out)))
+  (loop for line = (read-line in nil nil)
+     while line
+     do (write-line line out)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun write-file (name content)
@@ -683,9 +683,9 @@ credentials or other information required to be secure"
   "Reads `filename` as a sequence of unsigned 8-bit bytes, no
 encoding"
   (with-open-file (fin filename
-                   :direction :input
-                   :if-does-not-exist :error
-                   :element-type '(unsigned-byte 8))
+                       :direction :input
+                       :if-does-not-exist :error
+                       :element-type '(unsigned-byte 8))
     (let ((seq (make-array (file-length fin)
                            :element-type '(unsigned-byte 8)
                            :fill-pointer t)))
@@ -710,18 +710,18 @@ encoding"
               (make-list
                (- n ( mod (length seq) n))
                :initial-element fill-val))
-    seq))
+      seq))
 (with-running-unit-tests
-      (expect (pad-seq '() 1) nil)
-      (expect (pad-seq '(1) 1) '(1))
-      (expect (pad-seq '(1 2) 1) '(1 2))
-      (expect (pad-seq '(1 2) 2) '(1 2))
-      (expect (pad-seq '(1 2) 3) '(1 2 nil))
-      (expect (pad-seq '(1 2) 4) '(1 2 nil nil))
-      (expect (pad-seq '(1 2 3 4 5) 2) '(1 2 3 4 5 nil))
-      (expect (pad-seq '(1 2 3 4 5) 3) '(1 2 3 4 5 nil))
-      (expect (pad-seq '(1 2 3 4 5) 4) '(1 2 3 4 5 nil nil nil))
-      (expect (pad-seq '(1 2 3 4 5) 5) '(1 2 3 4 5)))
+    (expect (pad-seq '() 1) nil)
+  (expect (pad-seq '(1) 1) '(1))
+  (expect (pad-seq '(1 2) 1) '(1 2))
+  (expect (pad-seq '(1 2) 2) '(1 2))
+  (expect (pad-seq '(1 2) 3) '(1 2 nil))
+  (expect (pad-seq '(1 2) 4) '(1 2 nil nil))
+  (expect (pad-seq '(1 2 3 4 5) 2) '(1 2 3 4 5 nil))
+  (expect (pad-seq '(1 2 3 4 5) 3) '(1 2 3 4 5 nil))
+  (expect (pad-seq '(1 2 3 4 5) 4) '(1 2 3 4 5 nil nil nil))
+  (expect (pad-seq '(1 2 3 4 5) 5) '(1 2 3 4 5)))
 
 
 
@@ -748,29 +748,29 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
   (let (( list-of-lists (make-list slice)))
     ;;Basically walk up by index = slice*n
     (loop for var in seq
-          for n from 0
-          do
-          (setf (nth (mod n slice) list-of-lists)
-                (append (nth (mod n slice) list-of-lists)
-                        (list var))))
+       for n from 0
+       do
+         (setf (nth (mod n slice) list-of-lists)
+               (append (nth (mod n slice) list-of-lists)
+                       (list var))))
     list-of-lists))
 
 (with-running-unit-tests
-      (expect (partition-by-index '() 1) '(nil))
-      (expect (partition-by-index '(1) 1) '((1)))
-      (expect (partition-by-index '(1 2) 1) '((1 2)))
-      (expect (partition-by-index '(1 2) 2) '((1) (2)))
-      (expect (partition-by-index '(1 2 3) 3) '((1) (2) (3)))
-      (expect (partition-by-index '(1 2 3) 2) '((1 3) (2)))
-      (expect (partition-by-index '(1 2 3 4 5 6 7 8 9) 2)
-              '((1 3 5 7 9)
-                (2 4 6 8)))
-      (expect (partition-by-index '(1 2 3 4 5 6 7 8 9) 5)
-              '((1 6)
-                (2 7)
-                (3 8)
-                (4 9)
-                (5))))
+    (expect (partition-by-index '() 1) '(nil))
+  (expect (partition-by-index '(1) 1) '((1)))
+  (expect (partition-by-index '(1 2) 1) '((1 2)))
+  (expect (partition-by-index '(1 2) 2) '((1) (2)))
+  (expect (partition-by-index '(1 2 3) 3) '((1) (2) (3)))
+  (expect (partition-by-index '(1 2 3) 2) '((1 3) (2)))
+  (expect (partition-by-index '(1 2 3 4 5 6 7 8 9) 2)
+          '((1 3 5 7 9)
+            (2 4 6 8)))
+  (expect (partition-by-index '(1 2 3 4 5 6 7 8 9) 5)
+          '((1 6)
+            (2 7)
+            (3 8)
+            (4 9)
+            (5))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -781,16 +781,16 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
   (partition-by-index  (pad-seq data parts pad-byte) parts))
 
 (with-running-unit-tests
-      (expect (partition-padded '() 1) '(nil))
-      (expect (partition-padded '(1) 1) '((1)))
-      (expect (partition-padded '(1) 2) (list '(1) (list nil)))
-      (expect (partition-padded '(1) 3) (list '(1)
-                                              (list nil)
-                                              (list nil)))
-      (expect (partition-padded '(8 9 10 4) 3)
-              (list '(8 4)
-                    (list 9 nil)
-                    (list 10 nil))))
+    (expect (partition-padded '() 1) '(nil))
+  (expect (partition-padded '(1) 1) '((1)))
+  (expect (partition-padded '(1) 2) (list '(1) (list nil)))
+  (expect (partition-padded '(1) 3) (list '(1)
+                                          (list nil)
+                                          (list nil)))
+  (expect (partition-padded '(8 9 10 4) 3)
+          (list '(8 4)
+                (list 9 nil)
+                (list 10 nil))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -804,11 +804,11 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
       ((s str)
        (lol)) ;list of lists
     (loop
-     (push (upto #\space s) lol)
-     (setf s (after #\space s));;
-     (when (not s)
-       (return lol))
-     )))
+       (push (upto #\space s) lol)
+       (setf s (after #\space s));;
+       (when (not s)
+         (return lol))
+       )))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Environment management
@@ -882,7 +882,7 @@ Next time it is called, the same thing happens.
         ;;Increment data
         (setf data-read (subseq sequence 0 index))
         (setf data-to-read (subseq sequence index))
-           (setf index (1+ index))
+        (setf index (1+ index))
 
 
         ;;Typical DO is before body operation: this makes an 'after' evaluation
@@ -910,13 +910,13 @@ Next time it is called, the same thing happens.
   "Runs the generator on sequence and collects the results"
   (let ((generator (take-predicate-generator sequence predicate chunker)))
     (labels ((collector ()
-                ;; run the generator
-                (let ((data (funcall generator)))
-                  ;; If we got something
-                  (if data
-                      (cons data (collector))
-                      nil))))
-       (collector))))
+               ;; run the generator
+               (let ((data (funcall generator)))
+                 ;; If we got something
+                 (if data
+                     (cons data (collector))
+                     nil))))
+      (collector))))
 
 
 
@@ -927,34 +927,34 @@ Next time it is called, the same thing happens.
 failure occurs, prior to retrying, `fail-function` is executed.
 
 Other conditions beside `expected-errors` will exit out of this macro"
-   (let ((counter (gensym))
-         (result (gensym))
-         (start-tag (gensym))
-         (error-handler
-          #'(lambda (c)
-            (let ((r (find-restart 'handler c)))
-              (when r
-                (invoke-restart r c))))))
+  (let ((counter (gensym))
+        (result (gensym))
+        (start-tag (gensym))
+        (error-handler
+         #'(lambda (c)
+             (let ((r (find-restart 'handler c)))
+               (when r
+                 (invoke-restart r c))))))
 
-     `(let ((,counter 0)
-            (,result))
-            (tagbody
-               ,start-tag
-               (restart-case
-                   (handler-bind
-                        ,(mapcar #'(lambda (error-val)
-                                     (list error-val   error-handler))
-                                 expected-errors)
-                     (setf ,result ,@body))
-                 ;;the restart pointed at by the error-handler lambda
-                 (handler (&rest args)
-                   (declare (ignore args))
-                   (incf ,counter)
-                   (unless (> ,counter ,retries)
-                     (when ,fail-function
-                       (funcall ,fail-function))
-                     (go ,start-tag)))))
-        ,result)))
+    `(let ((,counter 0)
+           (,result))
+       (tagbody
+          ,start-tag
+          (restart-case
+              (handler-bind
+                  ,(mapcar #'(lambda (error-val)
+                               (list error-val   error-handler))
+                           expected-errors)
+                (setf ,result ,@body))
+            ;;the restart pointed at by the error-handler lambda
+            (handler (&rest args)
+              (declare (ignore args))
+              (incf ,counter)
+              (unless (> ,counter ,retries)
+                (when ,fail-function
+                  (funcall ,fail-function))
+                (go ,start-tag)))))
+       ,result)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun extend (&rest items)
