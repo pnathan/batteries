@@ -9,81 +9,81 @@
 (defpackage :batteries
   (:use :common-lisp)
   (:export :expect
-	   :*run-unit-tests*
-	   :with-running-unit-tests
+           :*run-unit-tests*
+           :with-running-unit-tests
 
-	   :make-temporary-file
+           :make-temporary-file
 
-	   :uniqueize
-	   :maxlist
-;	   :in
-	   :every-other
-	   :flatten
-	   :join
-	   :join-values
-	   :upto
-	   :after
-;	   :final
-	   :heads
-	   :tails
-	   :zip
-	   :firstn
-	   :find-bag-if
+           :uniqueize
+           :maxlist
+;          :in
+           :every-other
+           :flatten
+           :join
+           :join-values
+           :upto
+           :after
+;          :final
+           :heads
+           :tails
+           :zip
+           :firstn
+           :find-bag-if
 
-	   :hashset
-	   :hashget
-	   :hashdel
-	   :print-hash-table-1
-	   :string-hash-table-1
-	   :map-hash-to-hash
-	   :filter-hash-to-hash
-	   :mergable-hash-table-p
-	   :merge-hash-table
+           :hashset
+           :hashget
+           :hashdel
+           :print-hash-table-1
+           :string-hash-table-1
+           :map-hash-to-hash
+           :filter-hash-to-hash
+           :mergable-hash-table-p
+           :merge-hash-table
 
-	   :writeln
-	   :emit
-	   :concat-list
-	   :strcat
-	   :chomp
-	   :join-string
+           :writeln
+           :emit
+           :concat-list
+           :strcat
+           :chomp
+           :join-string
 
-	   :class-slots-symbols
-	   :object-to-hash
-	   :print-generic-object
+           :class-slots-symbols
+           :object-to-hash
+           :print-generic-object
 
-	   :sum
-	   :range
-	   :range-1
-	   :neg
-	   :true-p
+           :sum
+           :range
+           :range-1
+           :neg
+           :true-p
 
-	   :system
+           :system
 
-	   :write-file
-	   :write-text-file
-	   :write-to-file-as-variable
-	   :read-file
-	   :read-text-file
+           :write-file
+           :write-text-file
+           :write-to-file-as-variable
+           :read-file
+           :read-text-file
 
-	   :pad-seq
-	   :not-eql
-	   :partition-by-index
-	   :partition-padded
+           :pad-seq
+           :not-eql
+           :partition-by-index
+           :partition-padded
 
-	   :getargs
+           :getargs
 
-	   :sliding-window-2-wide
-	   :sliding-chunker
-	   :take-predicate-generator
-	   :gather-generator
+           :sliding-window-2-wide
+           :sliding-chunker
+           :take-predicate-generator
+           :gather-generator
 
-	   :getcwd
-	   :join-paths
+           :getcwd
+           :join-paths
 
-	   :with-condition-retries
+           :with-condition-retries
 
-	   :bash
-	   ))
+           :bash
+           ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list
@@ -120,17 +120,17 @@
   (when  *run-unit-tests*
     (labels ((sum (seq)  (reduce '+ seq)))
       (let ((test-successes
-	     (sum (loop for test in test-list
-		     do
-		       (if (not (eval test))
-			   (format t "Failure: ~a~%" test))
-		     collect
-		       (if (eval test) 1 0)))))
-	(format t "~a out of ~a passed tests~%"
-		test-successes
-		(length test-list))
-	(/ test-successes
-	 (length test-list))))))
+             (sum (loop for test in test-list
+                     do
+                       (if (not (eval test))
+                           (format t "Failure: ~a~%" test))
+                     collect
+                       (if (eval test) 1 0)))))
+        (format t "~a out of ~a passed tests~%"
+                test-successes
+                (length test-list))
+        (/ test-successes
+         (length test-list))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -154,12 +154,12 @@ Set :flipflop to T to take the even-indexed ones
 Note: has nothing to do with flipflow circuit elements."
   (if seq
       (if flipflop
-	  (every-other (cdr seq)
-		       :flipflop (not flipflop))
-	  (cons (car seq)
-		(every-other (cdr seq)
-			     :flipflop
-			     (not flipflop))))))
+          (every-other (cdr seq)
+                       :flipflop (not flipflop))
+          (cons (car seq)
+                (every-other (cdr seq)
+                             :flipflop
+                             (not flipflop))))))
 
 
 
@@ -169,12 +169,27 @@ Note: has nothing to do with flipflow circuit elements."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun uniqueize (x &key (test #'eql))
   "Return a list that is unique. Recursive, O(n^2)"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   ;; Another implementation might be to develop a hash table-based
   ;; approach ala perl's uniquize approach
-   (unless (endp x)
-     (adjoin (car x)
-	     (uniqueize (cdr x) :test test)
-	     :test test)))
+  (typecase x
+    (list
+     (let ((result))
+       (loop for ele in (the list x)
+          do
+            (unless (position ele (the list result) :test test)
+              (push ele result)))
+       result))
+
+    (vector
+     (let ((result (make-array (list (length x))
+                               :adjustable t
+                               :fill-pointer 0)))
+       (loop for ele across (the vector x)
+          do
+            (unless (position ele (the vector result) :test test)
+              (vector-push ele result)))
+       result))))
 
 (with-running-unit-tests
     (expect nil (uniqueize niL))
@@ -189,13 +204,15 @@ Note: has nothing to do with flipflow circuit elements."
 (defun flatten (x)
   "Descend into the supplied list until an atom is hit.
 Append the atom to the flattened rest"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1))
+           (list x))
   (if (endp x)
       x
-      (if (atom (car x ))
-	  (append (list (car x))
-		  (flatten (cdr x)))
-	  (append (flatten (car x))
-		  (flatten (cdr x ))))))
+      (if (atom (car x))
+          (append (list (car x))
+                  (flatten (cdr x)))
+          (append (flatten (car x))
+                  (flatten (cdr x ))))))
 
 (with-running-unit-tests
     (expect nil (flatten nil))
@@ -213,7 +230,7 @@ Append the atom to the flattened rest"
 (defmethod join ((sep t) (list list))
   "Returns the seq interspersed with sep as a list"
    (butlast (mapcan #'(lambda (x) (list x sep))
-	   list)))
+           list)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sequence functions - both array and lists
@@ -245,6 +262,7 @@ Expects seq to be a sequence of strings"
 (defun upto (v l)
   "subsequence of l, up to first occurance of v;
  everything if no v"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (subseq l 0 (position v l) ))
 
 (with-running-unit-tests
@@ -260,14 +278,16 @@ Expects seq to be a sequence of strings"
   "Returns everything after `v` in `l`
 If `v` doesn't exist, return nil
 Inverse of upto"
-  (subseq l
-	  (if (not (position v l))
-	      (length l)
-	    (+ 1 (position v l)))
-	  (length l)))
+    (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
+    (subseq l
+            (if (not (position v l))
+                (length l)
+                (+ 1 (position v l)))
+            (length l)))
 
 (defun final (seq)
   "Returns the last element of `seq`"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (elt (reverse seq) 0))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -277,8 +297,8 @@ Inverse of upto"
 (defun heads (lists)
   "gets the fronts of the lists in lists"
   (mapcar #'(lambda (x)
-	      (car x))
-	  lists))
+              (car x))
+          lists))
 
 (with-running-unit-tests
       (expect (heads '()) nil)
@@ -292,12 +312,15 @@ Inverse of upto"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun tails (lists)
   "Gets the rests of the lists in lists"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (mapcar #'(lambda (x) (subseq x 1))
-	  lists))
+          lists))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun interleave (lists)
   " (interleave '((1 2) (3 4))) => (1 3 2 4)"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1))
+           (list lists))
   (when lists
       (apply #'mapcan #'list lists)))
 
@@ -311,14 +334,16 @@ Inverse of upto"
   (expect (interleave '((1 2) (3 4))) '(1 3 2 4))
 
   (expect '(1 4 2 5 3 6)
-	  (interleave '((1 2 3) (4 5 6))))
+          (interleave '((1 2 3) (4 5 6))))
 
   (expect '(1 4 7 2 5 8 3 6 9)
-	  (interleave '((1 2 3) (4 5 6) (7 8 9)))))
+          (interleave '((1 2 3) (4 5 6) (7 8 9)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun zip (lists)
   " (zip '((1 2) (3 4))) => ((1 3) (2 4))"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1))
+           (list lists))
   (apply #'mapcar #'list lists))
 
 (with-running-unit-tests
@@ -331,6 +356,7 @@ Inverse of upto"
   "Returns the first `n` of `l`
 
 Raises an error if n > length of l"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (subseq l 0 n))
 
 (with-running-unit-tests
@@ -343,6 +369,7 @@ Raises an error if n > length of l"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun find-bag-if (predicate test-bag seq)
   "Is any of test-bag in seq, using predicate"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (intersection test-bag seq :test predicate))
 
 
@@ -371,7 +398,7 @@ Raises an error if n > length of l"
   "Are the two hash tables mergeable, that is, the keys do not
 collide"
   (not (intersection (alexandria:hash-table-keys hash-a)
-		     (alexandria:hash-table-keys hash-b))))
+                     (alexandria:hash-table-keys hash-b))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun merge-hash-table (hash-a hash-b)
@@ -383,21 +410,21 @@ Does not respect key collisions"
 
   (let ((new-hash-table (make-hash-table)))
     (maphash #'(lambda (k v)
-	       (hashset new-hash-table k v))
-	     hash-a)
+               (hashset new-hash-table k v))
+             hash-a)
 
     (maphash #'(lambda (k v)
-	       (hashset new-hash-table k v))
-	     hash-b)
+               (hashset new-hash-table k v))
+             hash-b)
     new-hash-table))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun string-hash-table-1 (hash)
   "Returns a string of the hash table, no recursion"
   (let ((accum
-	 (loop for var in (alexandria:hash-table-keys hash) collect
-	      (format nil "~a => ~a~&" var
-		      (gethash var hash)))))
+         (loop for var in (alexandria:hash-table-keys hash) collect
+              (format nil "~a => ~a~&" var
+                      (gethash var hash)))))
     (format nil "~{~a~}" accum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -410,9 +437,9 @@ Does not respect key collisions"
   "Given a hash table, apply fn to all values and return a new hash
   table with the same keys mapping to (fn val)"
   (let* ((hash (make-hash-table))
-	 (fn-wrapper
-	  (lambda (k v)
-	    (setf (gethash k hash) (apply fn (list v))))))
+         (fn-wrapper
+          (lambda (k v)
+            (setf (gethash k hash) (apply fn (list v))))))
     (maphash fn-wrapper hashtable)
     hash))
 
@@ -422,10 +449,10 @@ Does not respect key collisions"
   hashtable whose `values` do not return a non-nil value on (predicate
   value)"
   (let* ((hash (make-hash-table))
-	 (fn-wrapper
-	  (lambda (k v)
-	    (if (apply predicate (list v))
-		(setf (gethash k hash) v)))))
+         (fn-wrapper
+          (lambda (k v)
+            (if (apply predicate (list v))
+                (setf (gethash k hash) v)))))
     (maphash fn-wrapper hashtable)
     hash))
 
@@ -443,6 +470,7 @@ Does not respect key collisions"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; string operations
 (defun concat-list(seq)
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   "Concatenates a list of strings"
   (apply 'concatenate 'string seq))
 
@@ -459,8 +487,10 @@ Does not respect key collisions"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun chomp (s)
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
+
   "Trims the right side off"
-  (string-right-trim '(#\Space #\Tab #\Newline) s))
+  (string-right-trim '(#\Space #\Tab #\Newline) (the simple-string s)))
 
 (with-running-unit-tests
     (expect "abc" (chomp "abc "))
@@ -475,18 +505,18 @@ Does not respect key collisions"
 (defun class-slots-symbols (class-instance)
   "Returns a list of the symbols used in the class slots"
   (mapcar 'closer-mop:slot-definition-name
-	  (closer-mop:class-slots
-	   (class-of class-instance))))
+          (closer-mop:class-slots
+           (class-of class-instance))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun object-to-hash (obj)
   "Reflects over the slots of `obj`, and returns a hash table mapping
 slots to their values"
   (let ((new-hash (make-hash-table))
-	(slot-list (class-slots-symbols obj)))
+        (slot-list (class-slots-symbols obj)))
     (loop for slot in slot-list do
-	 (hashset new-hash (string slot)
-		  (slot-value  obj slot)))
+         (hashset new-hash (string slot)
+                  (slot-value  obj slot)))
     new-hash))
 
 
@@ -500,17 +530,22 @@ slots to their values"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun sum (seq)
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (reduce '+ seq))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun range (bottom top)
   "Inclusive Range.
 Generates a range from bottom to top on the integers"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1))
+           (integer bottom top))
   (loop for i from bottom to top collect i))
 
 (defun range-1 (bottom top)
   "Slightly Exclusive Range.
 Generates a range from bottom to top - 1 on the integers"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1))
+           (integer bottom top))
   (let ((top (1- top)))
     (loop for i from bottom to top collect i)))
 
@@ -537,21 +572,21 @@ If `stdin` is set, a string is expected
 Output is returned as a triple (STDOUT, STDERR, RETURN-CODE) "
 
   #+clisp (with-open-stream (s1 (ext:run-shell-command cmd :output :stream))
-	   (with-output-to-string (out)
-	     (copy-stream s1 out)))
+           (with-output-to-string (out)
+             (copy-stream s1 out)))
   #+sbcl
   (let ((stderr (make-string-output-stream))
-	(stdout (make-string-output-stream))
-	(stdin-stream (make-string-input-stream stdin)))
+        (stdout (make-string-output-stream))
+        (stdin-stream (make-string-input-stream stdin)))
     (let ((code (sb-ext:process-exit-code
-		 (sb-ext:run-program cmd args
-				     :search t
-				     :output stdout
-				     :error stderr
-				     :input stdin-stream))))
+                 (sb-ext:run-program cmd args
+                                     :search t
+                                     :output stdout
+                                     :error stderr
+                                     :input stdin-stream))))
       (list (get-output-stream-string stdout)
-	    (get-output-stream-string stderr)
-	    code)))
+            (get-output-stream-string stderr)
+            code)))
 
   #-(or clisp sbcl)
   (error "Unsupported implementation"))
@@ -563,17 +598,17 @@ The file is /not/ open. This function should not be used to store
 credentials or other information required to be secure"
 
   #+sbcl (let ((temp-file-name (sb-posix:mktemp "/tmp/tmpXXXXXXXX")))
-	   (with-open-file (stream temp-file-name
-				   :if-exists :error
-				   :direction :output))
-	   temp-file-name)
+           (with-open-file (stream temp-file-name
+                                   :if-exists :error
+                                   :direction :output))
+           temp-file-name)
 
 
   #+clisp
   (error "Clisp is not currentl supported; please contribute a patch accorcing to the following documenation: http://www.clisp.org/impnotes/syscalls.html")
   #+allegro
   (progn (error "Allegro is not currently supported; please contribute a patch according to the following documentation:
-		   http://ns2.franz.com/support/documentation/8.0/doc/operators/system/make-temp-file-name.htm"))
+                   http://ns2.franz.com/support/documentation/8.0/doc/operators/system/make-temp-file-name.htm"))
   #-(or allegro clisp sbcl)
   (error "Unsupported, support is unknown")
   )
@@ -613,7 +648,7 @@ credentials or other information required to be secure"
                            :direction :output
                            :if-exists :supersede
                            :if-does-not-exist :create
-			   :element-type  '(unsigned-byte 8))
+                           :element-type  '(unsigned-byte 8))
     (write-sequence content stream))
   name)
 
@@ -622,22 +657,22 @@ credentials or other information required to be secure"
 (defun write-text-file (name text)
   "Writes a text file"
   (write-file name
-	      (map 'vector #'char-int
-		   (format nil "~a" text))))
+              (map 'vector #'char-int
+                   (format nil "~a" text))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun write-to-file-as-variable (filename variable-name data)
   "Writes var to file as a variable"
   (write-text-file filename
-		   (with-output-to-string (stream)
-		     (format stream "(setf ~a " variable-name)
-		     ;;if a list, quote, otherwise don't quote
-		     (cond ((consp data)
-			    (format stream "'")
-			    (print data stream))
-			   (t
-			    (print data stream)))
-		     (format stream ")"))))
+                   (with-output-to-string (stream)
+                     (format stream "(setf ~a " variable-name)
+                     ;;if a list, quote, otherwise don't quote
+                     (cond ((consp data)
+                            (format stream "'")
+                            (print data stream))
+                           (t
+                            (print data stream)))
+                     (format stream ")"))))
 
 
 
@@ -646,14 +681,14 @@ credentials or other information required to be secure"
   "Reads `filename` as a sequence of unsigned 8-bit bytes, no
 encoding"
   (with-open-file (fin filename
-		   :direction :input
-		   :if-does-not-exist :error
-		   :element-type '(unsigned-byte 8))
+                   :direction :input
+                   :if-does-not-exist :error
+                   :element-type '(unsigned-byte 8))
     (let ((seq (make-array (file-length fin)
-			   :element-type '(unsigned-byte 8)
-			   :fill-pointer t)))
+                           :element-type '(unsigned-byte 8)
+                           :fill-pointer t)))
       (setf (fill-pointer seq)
-	    (read-sequence seq fin))
+            (read-sequence seq fin))
       seq)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -670,9 +705,9 @@ encoding"
  fill-val is defined to be nil normally"
   (if (/= (mod (length seq) n) 0)
       (append seq
-	      (make-list
-	       (- n ( mod (length seq) n))
-	       :initial-element fill-val))
+              (make-list
+               (- n ( mod (length seq) n))
+               :initial-element fill-val))
     seq))
 (with-running-unit-tests
       (expect (pad-seq '() 1) nil)
@@ -703,18 +738,19 @@ encoding"
   "Partitions seq into slice pieces, walking by slice each part
 If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 "
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (when (and error-on-indivisible
-	     (not-eql (mod (length seq) slice) 0))
+             (not-eql (mod (length seq) slice) 0))
     (error "Not evenly partitionable"))
 
   (let (( list-of-lists (make-list slice)))
     ;;Basically walk up by index = slice*n
     (loop for var in seq
-	  for n from 0
-	  do
-	  (setf (nth (mod n slice) list-of-lists)
-		(append (nth (mod n slice) list-of-lists)
-			(list var))))
+          for n from 0
+          do
+          (setf (nth (mod n slice) list-of-lists)
+                (append (nth (mod n slice) list-of-lists)
+                        (list var))))
     list-of-lists))
 
 (with-running-unit-tests
@@ -725,20 +761,21 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
       (expect (partition-by-index '(1 2 3) 3) '((1) (2) (3)))
       (expect (partition-by-index '(1 2 3) 2) '((1 3) (2)))
       (expect (partition-by-index '(1 2 3 4 5 6 7 8 9) 2)
-	      '((1 3 5 7 9)
-		(2 4 6 8)))
+              '((1 3 5 7 9)
+                (2 4 6 8)))
       (expect (partition-by-index '(1 2 3 4 5 6 7 8 9) 5)
-	      '((1 6)
-		(2 7)
-		(3 8)
-		(4 9)
-		(5))))
+              '((1 6)
+                (2 7)
+                (3 8)
+                (4 9)
+                (5))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun partition-padded (data parts &optional (pad-byte nil) )
   "Composing padding and partitioning, this partitions data into Parts number of parts."
   ;;Uses the global *pad-byte* to pad with.
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   (partition-by-index  (pad-seq data parts pad-byte) parts))
 
 (with-running-unit-tests
@@ -746,12 +783,12 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
       (expect (partition-padded '(1) 1) '((1)))
       (expect (partition-padded '(1) 2) (list '(1) (list nil)))
       (expect (partition-padded '(1) 3) (list '(1)
-					      (list nil)
-					      (list nil)))
+                                              (list nil)
+                                              (list nil)))
       (expect (partition-padded '(8 9 10 4) 3)
-	      (list '(8 4)
-		    (list 9 nil)
-		    (list 10 nil))))
+              (list '(8 4)
+                    (list 9 nil)
+                    (list 10 nil))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -780,13 +817,13 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 (defun load_argv ()
   "Loads the argument values"
   (setf *argv*
-	#+SBCL
-	sb-ext:*posix-argv*
-	#+CLISP
-	EXT:*ARGS*
-	#+CCL
+        #+SBCL
+        sb-ext:*posix-argv*
+        #+CLISP
+        EXT:*ARGS*
+        #+CCL
         *UNPROCESSED-COMMAND-LINE-ARGUMENTS*
-	#-(or SBCL CLISP CCL) (error "Lisp system not yet supported")))
+        #-(or SBCL CLISP CCL) (error "Lisp system not yet supported")))
 
 ;; Known systems that I should support:
 ;; cmu allegro LispWorks abcl
@@ -805,8 +842,8 @@ If error-on-indivisible is T, then err when (not-eql (mod (length seq) slice) 0)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun sliding-chunker (sequence last-run index)
   (subseq sequence
-	  (max 0 (1- last-run))
-	  index))
+          (max 0 (1- last-run))
+          index))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generator-y thing
@@ -823,6 +860,7 @@ The predicate must take index, data-read, and data-to-be-read
 
 Next time it is called, the same thing happens.
 "
+  (declare (optimize (speed 3) (space 3) (debug 2) (safety 1)))
   (let
       ((index 0)
        (last-run-pointer 0)
@@ -836,45 +874,46 @@ Next time it is called, the same thing happens.
        ;; Termination condition is below
        (nil)
 
-	;; went too far.
-	(when (> index cached-length) (return nil))
+        ;; went too far.
+        (when (> index cached-length) (return nil))
 
-	;;Increment data
-	(setf data-read (subseq sequence 0 index))
-	(setf data-to-read (subseq sequence index))
-	   (setf index (1+ index))
+        ;;Increment data
+        (setf data-read (subseq sequence 0 index))
+        (setf data-to-read (subseq sequence index))
+           (setf index (1+ index))
 
 
-	;;Typical DO is before body operation: this makes an 'after' evaluation
-	;;Termination conditions
-	(cond
-	  ;; went too far
-	  ((> index cached-length)
-	   (return nil))
+        ;;Typical DO is before body operation: this makes an 'after' evaluation
+        ;;Termination conditions
+        (cond
+          ;; went too far
+          ((> index cached-length)
+           (return nil))
 
-	  ;;Predicate... or overrun.
-	  ((or (funcall predicate index data-read data-to-read)
-	       (= index cached-length))
+          ;;Predicate... or overrun.
+          ((or (funcall predicate index data-read data-to-read)
+               (= index cached-length))
 
-	   (let
-	       ;;What is returned
-	       ((returned-sequence (funcall chunker sequence last-run-pointer index)))
+           (let
+               ;;What is returned
+               ((returned-sequence (funcall chunker sequence last-run-pointer index)))
 
-	     (setf last-run-pointer index)
+             (setf last-run-pointer index)
 
-	     (return returned-sequence))))))))
+             (return returned-sequence))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun gather-generator (sequence predicate chunker)
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
   "Runs the generator on sequence and collects the results"
   (let ((generator (take-predicate-generator sequence predicate chunker)))
     (labels ((collector ()
-		;; run the generator
-		(let ((data (funcall generator)))
-		  ;; If we got something
-		  (if data
-		      (cons data (collector))
-		      nil))))
+                ;; run the generator
+                (let ((data (funcall generator)))
+                  ;; If we got something
+                  (if data
+                      (cons data (collector))
+                      nil))))
        (collector))))
 
 
@@ -887,30 +926,45 @@ failure occurs, prior to retrying, `fail-function` is executed.
 
 Other conditions beside `expected-errors` will exit out of this macro"
    (let ((counter (gensym))
-	 (result (gensym))
-	 (start-tag (gensym))
-	 (error-handler
-	  #'(lambda (c)
-	    (let ((r (find-restart 'handler c)))
-	      (when r
-		(invoke-restart r c))))))
+         (result (gensym))
+         (start-tag (gensym))
+         (error-handler
+          #'(lambda (c)
+            (let ((r (find-restart 'handler c)))
+              (when r
+                (invoke-restart r c))))))
 
      `(let ((,counter 0)
-	    (,result))
-	    (tagbody
-	       ,start-tag
-	       (restart-case
-		   (handler-bind
-			,(mapcar #'(lambda (error-val)
-				     (list error-val   error-handler))
-				 expected-errors)
-		     (setf ,result ,@body))
-		 ;;the restart pointed at by the error-handler lambda
-		 (handler (&rest args)
-		   (declare (ignore args))
-		   (incf ,counter)
-		   (unless (> ,counter ,retries)
-		     (when ,fail-function
-		       (funcall ,fail-function))
-		     (go ,start-tag)))))
-	,result)))
+            (,result))
+            (tagbody
+               ,start-tag
+               (restart-case
+                   (handler-bind
+                        ,(mapcar #'(lambda (error-val)
+                                     (list error-val   error-handler))
+                                 expected-errors)
+                     (setf ,result ,@body))
+                 ;;the restart pointed at by the error-handler lambda
+                 (handler (&rest args)
+                   (declare (ignore args))
+                   (incf ,counter)
+                   (unless (> ,counter ,retries)
+                     (when ,fail-function
+                       (funcall ,fail-function))
+                     (go ,start-tag)))))
+        ,result)))
+
+
+(defun extend (&rest items)
+  "Append each item, ensuring that it is surrounded by a list if it is
+  not already"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
+  (apply #'concatenate 'list
+         (mapcar
+          #'alexandria:ensure-list
+          items) ))
+
+(defun explode (input)
+  "Assumes input is a vector, returns it as a list"
+  (declare (optimize (speed 3) (space 3) (debug 1) (safety 1)))
+  (concatenate 'list input))
