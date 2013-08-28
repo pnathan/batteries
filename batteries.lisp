@@ -9,81 +9,84 @@
 (defpackage :batteries
   (:use :common-lisp)
   (:export :expect
-           :*run-unit-tests*
-           :with-running-unit-tests
+	   :*run-unit-tests*
+	   :with-running-unit-tests
 
-           :make-temporary-file
+	   :make-temporary-file
 
-           :uniqueize
-           :maxlist
-;          :in
-           :every-other
-           :flatten
-           :join
-           :join-values
-           :upto
-           :after
-;          :final
-           :heads
-           :tails
-           :zip
-           :firstn
-           :find-bag-if
+	   :switch
 
-           :hashset
-           :hashget
-           :hashdel
-           :print-hash-table-1
-           :string-hash-table-1
-           :map-hash-to-hash
-           :filter-hash-to-hash
-           :mergable-hash-table-p
-           :merge-hash-table
+	   :extend
+	   :uniqueize
+	   :maxlist
+;	   :in
+	   :every-other
+	   :flatten
+	   :join
+	   :join-values
+	   :upto
+	   :after
+;	   :final
+	   :heads
+	   :tails
+	   :zip
+	   :firstn
+	   :find-bag-if
 
-           :writeln
-           :emit
-           :concat-list
-           :strcat
-           :chomp
-           :join-string
+	   :hashset
+	   :hashget
+	   :hashdel
+	   :print-hash-table-1
+	   :string-hash-table-1
+	   :map-hash-to-hash
+	   :filter-hash-to-hash
+	   :mergable-hash-table-p
+	   :merge-hash-table
 
-           :class-slots-symbols
-           :object-to-hash
-           :print-generic-object
+	   :writeln
+	   :emit
+	   :concat-list
+	   :strcat
+	   :chomp
+	   :join-string
 
-           :sum
-           :range
-           :range-1
-           :neg
-           :true-p
+	   :class-slots-symbols
+	   :object-to-hash
+	   :print-generic-object
 
-           :system
+	   :sum
+	   :range
+	   :range-1
+	   :neg
+	   :true-p
 
-           :write-file
-           :write-text-file
-           :write-to-file-as-variable
-           :read-file
-           :read-text-file
+	   :system
 
-           :pad-seq
-           :not-eql
-           :partition-by-index
-           :partition-padded
+	   :write-file
+	   :write-text-file
+	   :write-to-file-as-variable
+	   :read-file
+	   :read-text-file
 
-           :getargs
+	   :pad-seq
+	   :not-eql
+	   :partition-by-index
+	   :partition-padded
 
-           :sliding-window-2-wide
-           :sliding-chunker
-           :take-predicate-generator
-           :gather-generator
+	   :getargs
 
-           :getcwd
-           :join-paths
+	   :sliding-window-2-wide
+	   :sliding-chunker
+	   :take-predicate-generator
+	   :gather-generator
 
-           :with-condition-retries
+	   :getcwd
+	   :join-paths
 
-           :bash
-           ))
+	   :with-condition-retries
+
+	   :bash
+	   ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TODO list
@@ -163,7 +166,6 @@ Note: has nothing to do with flipflow circuit elements."
 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -230,7 +232,7 @@ Append the atom to the flattened rest"
 (defmethod join ((sep t) (list list))
   "Returns the seq interspersed with sep as a list"
    (butlast (mapcan #'(lambda (x) (list x sep))
-           list)))
+	   list)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sequence functions - both array and lists
@@ -334,10 +336,10 @@ Inverse of upto"
   (expect (interleave '((1 2) (3 4))) '(1 3 2 4))
 
   (expect '(1 4 2 5 3 6)
-          (interleave '((1 2 3) (4 5 6))))
+	  (interleave '((1 2 3) (4 5 6))))
 
   (expect '(1 4 7 2 5 8 3 6 9)
-          (interleave '((1 2 3) (4 5 6) (7 8 9)))))
+	  (interleave '((1 2 3) (4 5 6) (7 8 9)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun zip (lists)
@@ -398,7 +400,7 @@ Raises an error if n > length of l"
   "Are the two hash tables mergeable, that is, the keys do not
 collide"
   (not (intersection (alexandria:hash-table-keys hash-a)
-                     (alexandria:hash-table-keys hash-b))))
+		     (alexandria:hash-table-keys hash-b))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun merge-hash-table (hash-a hash-b)
@@ -410,21 +412,21 @@ Does not respect key collisions"
 
   (let ((new-hash-table (make-hash-table)))
     (maphash #'(lambda (k v)
-               (hashset new-hash-table k v))
-             hash-a)
+	       (hashset new-hash-table k v))
+	     hash-a)
 
     (maphash #'(lambda (k v)
-               (hashset new-hash-table k v))
-             hash-b)
+	       (hashset new-hash-table k v))
+	     hash-b)
     new-hash-table))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun string-hash-table-1 (hash)
   "Returns a string of the hash table, no recursion"
   (let ((accum
-         (loop for var in (alexandria:hash-table-keys hash) collect
-              (format nil "~a => ~a~&" var
-                      (gethash var hash)))))
+	 (loop for var in (alexandria:hash-table-keys hash) collect
+	      (format nil "~a => ~a~&" var
+		      (gethash var hash)))))
     (format nil "~{~a~}" accum)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -437,9 +439,9 @@ Does not respect key collisions"
   "Given a hash table, apply fn to all values and return a new hash
   table with the same keys mapping to (fn val)"
   (let* ((hash (make-hash-table))
-         (fn-wrapper
-          (lambda (k v)
-            (setf (gethash k hash) (apply fn (list v))))))
+	 (fn-wrapper
+	  (lambda (k v)
+	    (setf (gethash k hash) (apply fn (list v))))))
     (maphash fn-wrapper hashtable)
     hash))
 
@@ -449,10 +451,10 @@ Does not respect key collisions"
   hashtable whose `values` do not return a non-nil value on (predicate
   value)"
   (let* ((hash (make-hash-table))
-         (fn-wrapper
-          (lambda (k v)
-            (if (apply predicate (list v))
-                (setf (gethash k hash) v)))))
+	 (fn-wrapper
+	  (lambda (k v)
+	    (if (apply predicate (list v))
+		(setf (gethash k hash) v)))))
     (maphash fn-wrapper hashtable)
     hash))
 
@@ -496,6 +498,11 @@ Does not respect key collisions"
     (expect "abc" (chomp "abc "))
     (expect "abc" (chomp "abc
  ")))
+
+(defun explode (input)
+  "Splits the string `input` into a list of elements"
+  (loop for c across input collect c))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -954,7 +961,7 @@ Other conditions beside `expected-errors` will exit out of this macro"
                      (go ,start-tag)))))
         ,result)))
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun extend (&rest items)
   "Append each item, ensuring that it is surrounded by a list if it is
   not already"
